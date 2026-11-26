@@ -113,21 +113,18 @@ export function openSqlite(path: string) {
     read(query) { database.exec('BEGIN'); return commit(query); },
     write,
     receipt(action, id) {
-      const row = database.prepare('SELECT input,result,confirmation_id FROM operation_receipts WHERE action=? AND id=?').get(action, id);
+      const row = database.prepare('SELECT input,result,original_id FROM operation_receipts WHERE action=? AND id=?').get(action, id);
       return row ? {
         input: String(row.input), result: String(row.result),
-        confirmationId: typeof row.confirmation_id === 'string' ? row.confirmation_id : undefined,
+        originalId: typeof row.original_id === 'string' ? row.original_id : undefined,
       } : undefined;
     },
-    pendingReceipt(action, input) {
-      const row = database.prepare('SELECT id,result FROM operation_receipts WHERE action=? AND input=? AND pending=1').get(action, input);
+    latestPageReceipt(action, input) {
+      const row = database.prepare('SELECT id,result FROM operation_receipts WHERE action=? AND input=? AND from_page=1 ORDER BY rowid DESC LIMIT 1').get(action, input);
       return row ? { id: String(row.id), result: String(row.result) } : undefined;
     },
-    putReceipt(action, id, input, result, pending, confirmationId) {
-      database.prepare('INSERT INTO operation_receipts VALUES(?,?,?,?,?,?)').run(action, id, input, result, Number(pending), confirmationId ?? null);
-    },
-    confirmReceipt(action, id) {
-      database.prepare('UPDATE operation_receipts SET pending=0 WHERE action=? AND id=? AND pending=1').run(action, id);
+    putReceipt(action, id, input, result, fromPage, originalId) {
+      database.prepare('INSERT INTO operation_receipts VALUES(?,?,?,?,?,?)').run(action, id, input, result, Number(fromPage), originalId ?? null);
     },
     searchFoods,
     food(id) {

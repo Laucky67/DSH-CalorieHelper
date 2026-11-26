@@ -5,10 +5,9 @@ export type StoredProfile = { version: number; profile: Profile };
 export interface TrackerRepository {
   read<Result>(query: () => Result): Result;
   write<Result>(change: () => Result, signal?: AbortSignal): Promise<Result>;
-  receipt(action: string, id: string): { input: string; result: string; confirmationId?: string } | undefined;
-  pendingReceipt(action: string, input: string): { id: string; result: string } | undefined;
-  putReceipt(action: string, id: string, input: string, result: string, pending: boolean, confirmationId?: string): void;
-  confirmReceipt(action: string, id: string): void;
+  receipt(action: string, id: string): { input: string; result: string; originalId?: string } | undefined;
+  latestPageReceipt(action: string, input: string): { id: string; result: string } | undefined;
+  putReceipt(action: string, id: string, input: string, result: string, fromPage: boolean, originalId?: string): void;
   food(id: string): Food | undefined;
   foodNamed(name: string): Food | undefined;
   searchFoods(query: string | undefined, limit: number, offset: number): Food[];

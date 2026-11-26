@@ -1,6 +1,6 @@
 import type { core, ZodType } from 'zod';
 
-export type ErrorCode = 'INVALID_INPUT' | 'INVALID_UNIT' | 'NOT_FOUND' | 'CONFLICT' | 'FOOD_IN_USE' | 'BUSY' | 'STORAGE_FAILURE' | 'CANCELLED';
+export type ErrorCode = 'INVALID_INPUT' | 'INVALID_UNIT' | 'NOT_FOUND' | 'CONFLICT' | 'MEAL_ALREADY_SAVED' | 'FOOD_IN_USE' | 'BUSY' | 'STORAGE_FAILURE' | 'CANCELLED';
 
 export class TrackerError extends Error {
   readonly detail: string;

@@ -63,6 +63,7 @@ function operationId(): string {
 }
 
 const pendingOperations = new Map<string, string>();
+const seenMealReceipts = new Map<string, string>();
 
 async function pendingOperation(intent: string) {
   const digest = await crypto.subtle?.digest('SHA-256', new TextEncoder().encode(intent));
@@ -104,8 +105,12 @@ export function useMutation() {
     let operation: Awaited<ReturnType<typeof pendingOperation>> | undefined;
     let result: ClientResult<Action>;
     try {
-      operation = await pendingOperation(JSON.stringify([action, input]));
-      result = await request<Action>(action, { ...input, operationId: operation.id });
+      const isMeal = action === 'diet_create';
+      const meal = isMeal ? input as ClientInput<'diet_create'> : undefined;
+      const intent = JSON.stringify(meal ? [action, meal.date, meal.meal, meal.items] : [action, input]);
+      operation = await pendingOperation(intent);
+      const payload = { ...input, operationId: operation.id, ...(isMeal ? { previousReceiptId: seenMealReceipts.get(intent) } : {}) };
+      result = await request<Action>(action, payload, undefined, isMeal ? (id) => { seenMealReceipts.set(intent, id); } : undefined);
       operation.clear();
     } catch (failure) {
       if (failure instanceof RequestError && !['CONNECTION', 'STORAGE_FAILURE', 'INVALID_RESPONSE', 'BUSY'].includes(failure.code)) operation?.clear();

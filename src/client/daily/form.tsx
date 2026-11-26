@@ -30,6 +30,7 @@ export function DietForm({ date, meal, entry, revision, openFoodEditor, onSaved,
   const foods = useResource(load);
   const { busy, error, errorCode, run, clearError } = useMutation();
   const unitError = errorCode === 'INVALID_UNIT';
+  const alreadySaved = errorCode === 'MEAL_ALREADY_SAVED';
   const selected = useResource(loadSelected);
   const chosen = foods.data?.find((food) => food.id === foodId) ?? selected.data?.[0];
 
@@ -43,10 +44,15 @@ export function DietForm({ date, meal, entry, revision, openFoodEditor, onSaved,
       const baseline = { date: entry.date, meal: entry.meal, foodId: entry.foodId, amount: entry.amount };
       const patch = fieldChanges(baseline, { date: changedDate, meal: changedMeal, foodId, amount });
       void run('diet_update', { id: entry.id, ...patch }, onSaved);
-    } else void run('diet_create', { date, meal, items: [{ foodId, amount }] }, onSaved);
+    } else {
+      const submitter = (event.nativeEvent as SubmitEvent).submitter;
+      const choice = submitter instanceof HTMLButtonElement ? submitter.value : undefined;
+      const ifAlreadySaved = choice === 'use_saved' || choice === 'add_another' ? choice : undefined;
+      void run('diet_create', { date, meal, items: [{ foodId, amount }], ifAlreadySaved }, onSaved);
+    }
   }
 
-  return <form className="cal-form cal-diet-form" onChange={onDirty} onSubmit={submit}>
+  return <form className="cal-form cal-diet-form" onChange={() => { onDirty(); if (alreadySaved) clearError(); }} onSubmit={submit}>
     <h3>{entry ? '修改记录' : '添加饮食记录'}</h3>
     <fieldset className="cal-form-fields" disabled={busy}>
     {entry && <div className="cal-form-grid">
@@ -100,7 +106,10 @@ export function DietForm({ date, meal, entry, revision, openFoodEditor, onSaved,
     {error && <ErrorNotice text={error} id={unitError ? unitErrorId : undefined} />}
     <div className="cal-actions">
       <button className="cal-button" type="button" onClick={onCancel} disabled={busy}>取消</button>
-      <button className="cal-button cal-primary" type="submit" disabled={busy || !chosen}>{busy ? '正在保存…' : '保存记录'}</button>
+      {alreadySaved ? <>
+        <button className="cal-button" type="submit" value="use_saved" disabled={busy || !chosen}>沿用已保存的记录</button>
+        <button className="cal-button cal-primary" type="submit" value="add_another" disabled={busy || !chosen}>再记一条</button>
+      </> : <button className="cal-button cal-primary" type="submit" disabled={busy || !chosen}>{busy ? '正在保存…' : '保存记录'}</button>}
     </div>
   </form>;
 }

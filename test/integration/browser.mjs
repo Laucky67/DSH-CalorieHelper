@@ -85,6 +85,7 @@ try {
     await selectFood('零嘴', '浏览器烟测饭团');
     await value('.cal-diet-form input[name=amount]', '4');
     await click('保存记录');
+    await click('沿用已保存的记录');
     await until(() => page(`!document.querySelector('.cal-diet-form')`), 'retry after desktop restart completed');
     assert.equal(await page(`[...document.querySelectorAll('[data-meal=snack] .cal-food-name strong')].filter(el=>el.textContent==='浏览器烟测饭团').length`), 1);
     console.log('Passed: Windows DSH Desktop restart, migrated history and profile, retry after full restart');
@@ -125,6 +126,8 @@ try {
   await selectFood('午餐', '浏览器烟测饭团');
   await click('保存记录');
   const countLunch = () => page(`[...document.querySelectorAll('[data-meal=lunch] .cal-food-name strong')].filter(el=>el.textContent==='浏览器烟测饭团').length`);
+  await until(() => page(`!document.querySelector('.cal-diet-form') || Boolean(${find('沿用已保存的记录')})`), 'retry outcome');
+  if (await page(`Boolean(${find('沿用已保存的记录')})`)) await click('沿用已保存的记录');
   await until(() => page(`!document.querySelector('.cal-diet-form')`), 'retried save completed');
   assert.equal(await countLunch(), 1);
   await selectFood('午餐', '浏览器烟测饭团');

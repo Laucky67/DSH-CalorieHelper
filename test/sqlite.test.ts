@@ -36,12 +36,17 @@ test('两个连接的写入均可见，批量记餐回执在重启后仍可重�
     try {
       const c = createTracker(reopened);
       assert.deepEqual(await c.diet_create(batch), saved);
-      assert.deepEqual(await c.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-reopened' }), page);
+      const afterRestart = { ...batch, meal: 'breakfast', operationId: 'page-reopened' };
+      await assert.rejects(() => c.diet_create_from_page(afterRestart), { code: 'MEAL_ALREADY_SAVED' });
+      assert.deepEqual(await c.diet_create_from_page({ ...afterRestart, ifAlreadySaved: 'use_saved' }), page);
       assert.equal((await c.diet_query({ date })).totalKcal, 250);
-      await c.diet_confirm({ operationId: page.receiptId });
-      assert.deepEqual(await c.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-reopened' }), page);
-      const repeat = await c.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-intentional-repeat' });
+      assert.deepEqual(await c.diet_create_from_page(afterRestart), page);
+      const repeat = await c.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-intentional-repeat', ifAlreadySaved: 'add_another' });
       assert.notEqual(repeat.result[0].id, page.result[0].id);
+      assert.equal((await c.diet_query({ date })).totalKcal, 375);
+      await c.diet_delete({ id: repeat.result[0].id });
+      const readded = await c.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-after-delete' });
+      assert.notEqual(readded.result[0].id, repeat.result[0].id);
       assert.equal((await c.diet_query({ date })).totalKcal, 375);
     } finally { reopened.close(); }
     } finally { right.close(); left.close(); }

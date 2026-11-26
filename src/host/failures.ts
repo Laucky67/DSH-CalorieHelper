@@ -4,7 +4,7 @@ import type { ErrorCode } from '../core/errors.ts';
 import { isBusy, sqliteErrorCode } from '../storage/sqlite-errors.ts';
 
 export const status: Record<ErrorCode, number> = {
-  INVALID_INPUT: 400, INVALID_UNIT: 400, NOT_FOUND: 404, CONFLICT: 409, FOOD_IN_USE: 409,
+  INVALID_INPUT: 400, INVALID_UNIT: 400, NOT_FOUND: 404, CONFLICT: 409, MEAL_ALREADY_SAVED: 409, FOOD_IN_USE: 409,
   CANCELLED: 408, BUSY: 503, STORAGE_FAILURE: 500,
 };
 
