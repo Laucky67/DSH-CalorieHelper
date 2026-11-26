@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { DietItem, Meal } from '../../core/contracts.ts';
-import { request } from '../api.ts';
 import type { OpenFoodEditor } from '../app.tsx';
 import { EditButton, ErrorNotice } from '../feedback.tsx';
 import { energyText, mealLabels } from '../presentation.ts';
@@ -9,7 +8,7 @@ import { useMutation } from '../requests.ts';
 
 export function MealCard({ meal, items, onAdd, onEdit, onRemoved, openFoodEditor, children }: {
   meal: Meal;
-  items: DietItem[];
+  items?: DietItem[];
   onAdd: () => void;
   onEdit: (item: DietItem) => void;
   onRemoved: () => void;
@@ -20,8 +19,7 @@ export function MealCard({ meal, items, onAdd, onEdit, onRemoved, openFoodEditor
   const remove = useMutation();
 
   function confirmDelete(id: string) {
-    void remove.run(async () => {
-      await request('diet_delete', { id });
+    void remove.run('diet_delete', { id }, () => {
       setPendingDelete(undefined);
       onRemoved();
     });
@@ -32,9 +30,9 @@ export function MealCard({ meal, items, onAdd, onEdit, onRemoved, openFoodEditor
       <h2>{mealLabels[meal]}</h2>
       <button type="button" className="cal-button cal-small" onClick={onAdd} aria-label={`添加${mealLabels[meal]}记录`}>添加记录</button>
     </header>
-    {items.length === 0 && !children && <p className="cal-empty">还没有记录。</p>}
+    {items?.length === 0 && !children && <p className="cal-empty">还没有记录。</p>}
     <ul className="cal-list">
-      {items.map((entry) => <li key={entry.id}>
+      {items?.map((entry) => <li key={entry.id}>
         <div className="cal-row">
           <div>
             <div className="cal-food-name">
@@ -52,8 +50,8 @@ export function MealCard({ meal, items, onAdd, onEdit, onRemoved, openFoodEditor
           </div>
         </div>
         {pendingDelete === entry.id && <div className="cal-delete-prompt">
-          <span>删除这条记录？</span>
-          <button className="cal-button cal-small" type="button" onClick={() => setPendingDelete(undefined)} disabled={remove.busy}>取消</button>
+          <span>删除「{entry.foodName}」这条记录？</span>
+          <button autoFocus className="cal-button cal-small" type="button" onClick={() => setPendingDelete(undefined)} disabled={remove.busy}>取消</button>
           <button className="cal-button cal-danger cal-small" type="button" onClick={() => confirmDelete(entry.id)} disabled={remove.busy}>确认删除</button>
         </div>}
       </li>)}

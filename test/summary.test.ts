@@ -52,3 +52,16 @@ test('个人资料版本在浏览器的新一天生效，宿主时区不改变�
   assert.equal(Math.round((await tracker.daily_summary({ date: '2026-11-27' })).maintenanceKcal!), 2275);
   assert.equal((await tracker.profile_get({ timeZone: 'Asia/Singapore' })).weightKg, 63);
 });
+
+test('资料未变化时复用版本，旧版本提交会冲突，摄入与维持热量相等时差值为零', async () => {
+  const date = '2026-11-26';
+  const tracker = createTracker(memoryStorage(), () => date);
+  const saved = await tracker.profile_save({ ...profile, expectedVersion: null });
+  assert.equal((await tracker.profile_save({ ...profile, expectedVersion: saved.version })).version, saved.version);
+  await assert.rejects(() => tracker.profile_save({ ...profile, weightKg: 66, expectedVersion: null }), { code: 'CONFLICT' });
+  await tracker.diet_create({ date, meal: 'lunch', items: [{
+    newFood: { name: '示例餐食', nutrition: { per: { value: 1, unit: '份' }, values: { energyKcal: 2275.37 } } },
+    amount: { value: 1, unit: '份' },
+  }] });
+  assert.equal((await tracker.daily_summary({ date })).differenceKcal, 0);
+});

@@ -15,37 +15,51 @@ const id = required({ ...string, description: '用搜索或新增工具返回的
 const date = { ...string, description: '日历日期，格式 YYYY-MM-DD。' } as const;
 const meal = { ...string, enum: meals } as const;
 const quantity = object({ value: required(number), unit: required(string) });
-const nutrition = object({
-  per: required(quantity),
-  values: required(object({
-    energyKcal: required(number), proteinG: number, fatG: number, carbsG: number, calciumMg: number,
-  })),
+const nutrientValues = object({
+  energyKcal: required(number), proteinG: number, fatG: number, carbsG: number, calciumMg: number,
 });
+const nutrition = object({ per: required(quantity), values: required(nutrientValues) });
 const portions = {
   type: 'array',
   items: object({ unit: required(string), equals: required(quantity) }),
   description: '每 1 个自定义单位对应的数量，例如 1 碗等于 150 g。',
 } as const;
 const newFood = object({ name: required(string), nutrition: required(nutrition), portions });
+const operationId = { ...string, description: '为每次操作生成唯一标识。同一次操作重试时必须复用此标识及原参数。' } as const;
+const limit = { type: 'integer', description: '每页条数，默认 100，上限 200。' } as const;
+const offset = { type: 'integer', description: '从第几条开始，第一页填 0。' } as const;
 
 export const toolParameters: Record<ToolName, ParameterSchemaSpec> = {
-  food_search: { id: string, query: string },
-  food_create: newFood.properties,
+  food_search: { id: string, query: string, limit, offset },
+  food_create: { ...newFood.properties, operationId },
   food_update: {
-    id, changes: required(object({ name: string, nutrition, portions })),
+    id, changes: required(object({ name: string, nutrition, portions })), operationId,
   },
-  food_delete: { id },
+  food_delete: { id, operationId },
   diet_create: {
     date: required(date),
     meal: required(meal),
+    operationId: required(operationId),
     items: required({
       type: 'array',
       items: object({ foodId: string, newFood, amount: required(quantity) }),
     }),
   },
-  diet_query: { id: string, date, meal },
+  diet_query: { id: string, date, meal, limit, offset },
   diet_update: {
-    id, changes: required(object({ date, meal, foodId: string, amount: quantity })),
+    id, changes: required(object({ date, meal, foodId: string, amount: quantity })), operationId,
   },
-  diet_delete: { id },
+  diet_delete: { id, operationId },
+};
+
+const foodResult = object({ ...newFood.properties, id });
+const entryResult = object({ id, date: required(date), meal: required(meal), foodId: id, amount: required(quantity),
+  foodName: required(string), nutrition: required(nutrientValues),
+});
+const deleteResult = object({ id });
+const list = <Value extends ValueSchemaSpec>(items: Value) => ({ type: 'array', items } as const);
+export const toolResults: Record<ToolName, ValueSchemaSpec> = {
+  food_search: list(foodResult), food_create: foodResult, food_update: foodResult, food_delete: deleteResult,
+  diet_create: list(entryResult), diet_query: object({ items: required(list(entryResult)), totalKcal: required(number) }),
+  diet_update: entryResult, diet_delete: deleteResult,
 };

@@ -1,6 +1,6 @@
 import type { DailySummary, Profile } from './contracts.ts';
 import { queryEntries } from './diets.ts';
-import type { TrackerState } from './state.ts';
+import type { TrackerRepository } from './repository.ts';
 
 // NASEM 2023, Dietary Reference Intakes for Energy, 表 5-16。
 // 每组依次是常数、年龄、身高（厘米）和体重（千克）的系数。
@@ -19,16 +19,6 @@ const coefficients = {
   },
 } as const;
 
-export function profileOn({ profiles }: TrackerState, date: string): Profile {
-  let latest: (typeof profiles)[number] | undefined;
-  for (const version of profiles) {
-    if (version.effectiveDate <= date && (!latest || version.effectiveDate >= latest.effectiveDate)) {
-      latest = version;
-    }
-  }
-  return latest?.profile ?? {};
-}
-
 function estimate(profile: Profile, date: string): number | null {
   const { birthDate, sex, heightCm, weightKg, activity } = profile;
   if (!birthDate || !sex || heightCm === undefined || weightKg === undefined || !activity) return null;
@@ -42,12 +32,12 @@ function estimate(profile: Profile, date: string): number | null {
   return Number.isFinite(kcal) && kcal > 0 ? kcal : null;
 }
 
-export function summarize(state: TrackerState, date: string): DailySummary {
-  const diet = queryEntries(state, { date });
-  const maintenanceKcal = estimate(profileOn(state, date), date);
+export function summarize(repo: TrackerRepository, date: string): DailySummary {
+  const diet = queryEntries(repo, { date });
+  const maintenanceKcal = estimate(repo.profileOn(date)?.profile ?? {}, date);
   return {
     ...diet,
     maintenanceKcal,
-    differenceKcal: maintenanceKcal === null ? null : maintenanceKcal - diet.totalKcal,
+    differenceKcal: maintenanceKcal === null ? null : Number((maintenanceKcal - diet.totalKcal).toFixed(9)),
   };
 }

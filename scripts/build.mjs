@@ -1,12 +1,14 @@
 import { build } from 'esbuild';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 const shared = {
   bundle: true,
   format: 'esm',
   sourcemap: true,
+  write: false,
 };
 
-await Promise.all([
+const builds = await Promise.all([
   build({
     ...shared,
     entryPoints: ['src/host/index.ts'],
@@ -31,3 +33,6 @@ const exports = module.exports;` },
     footer: { js: 'return module.exports;\n} });' },
   }),
 ]);
+
+await mkdir('lib', { recursive: true });
+await Promise.all(builds.flatMap(({ outputFiles }) => outputFiles.map(({ path, contents }) => writeFile(path, contents))));

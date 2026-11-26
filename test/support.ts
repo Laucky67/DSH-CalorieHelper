@@ -1,10 +1,7 @@
-import type { TrackerState, TrackerStorage } from '../src/core/state.ts';
+import { openSqlite } from '../src/storage/sqlite.ts';
 
-export function memoryStorage(): TrackerStorage {
-  let snapshot: TrackerState | undefined;
-
-  return {
-    async load() { return structuredClone(snapshot); },
-    async save(state) { snapshot = structuredClone(state); },
-  };
+export function memoryStorage() {
+  const store = openSqlite(':memory:');
+  store.initialize();
+  return store;
 }

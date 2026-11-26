@@ -14,5 +14,6 @@ export function localDate(date = new Date(), timeZone?: string): string {
 export function shiftDate(value: string, days: number): string {
   const date = new Date(`${value}T12:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
+  const next = date.toISOString();
+  return /^\d{4}-/.test(next) ? next.slice(0, 10) : value;
 }

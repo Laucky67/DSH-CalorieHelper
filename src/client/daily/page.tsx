@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { localDate, shiftDate } from '../../core/calendar.ts';
 import { meals } from '../../core/choices.ts';
 import type { DietItem, Meal } from '../../core/contracts.ts';
@@ -10,15 +10,36 @@ import { DietForm } from './form.tsx';
 import { MealCard } from './meal-card.tsx';
 import { Summary } from './summary.tsx';
 
-export function DailyPage({ openFoodEditor, revision }: { openFoodEditor: OpenFoodEditor; revision: number }) {
+type Draft = { key: number; meal: Meal; entry?: DietItem; dirty: boolean };
+
+export function DailyPage({ openFoodEditor, revision, active }: { openFoodEditor: OpenFoodEditor; revision: number; active: boolean }) {
   const [date, setDate] = useState(() => localDate());
-  const [draft, setDraft] = useState<{ meal: Meal; entry?: DietItem }>();
+  const [followingToday, setFollowingToday] = useState(true);
+  const [draft, setDraft] = useState<Draft>();
+  const nextKey = useRef(0);
   const load = useCallback((signal: AbortSignal) => request('daily_summary', { date }, signal), [date, revision]);
-  const resource = useResource(load);
+  const resource = useResource(load, 4000, active);
+
+  useEffect(() => {
+    if (!active || !followingToday || draft) return;
+    const refreshDate = () => setDate(localDate());
+    refreshDate();
+    window.addEventListener('focus', refreshDate);
+    const timer = window.setInterval(refreshDate, 30000);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refreshDate); };
+  }, [active, followingToday, draft]);
+
+  function discardDraft() { return !draft?.dirty || window.confirm('这条饮食记录还没有保存。要放弃编辑吗？'); }
+
+  function startDraft(meal: Meal, entry?: DietItem) {
+    if (!discardDraft()) return;
+    setDraft({ key: ++nextKey.current, meal, entry, dirty: false });
+  }
 
   function changeDate(next: string) {
-    if (!next) return;
+    if (!next || date === next || !discardDraft()) return;
     setDraft(undefined);
+    setFollowingToday(next === localDate());
     setDate(next);
   }
 
@@ -33,18 +54,19 @@ export function DailyPage({ openFoodEditor, revision }: { openFoodEditor: OpenFo
       </div>
     </div>
     <Summary value={resource.data} />
-    {resource.error && <ErrorNotice text={resource.error} retry={resource.refresh} />}
+    {resource.error && <ErrorNotice text={resource.data ? `更新失败，当前显示上次读取的记录。${resource.error}` : resource.error} retry={resource.refresh} />}
     {!resource.error && !resource.data && <Loading />}
     <div className="cal-meals" aria-busy={!resource.data && !resource.error}>
       {meals.map((meal) => <MealCard
-        key={`${date}/${meal}`} meal={meal} items={resource.data?.items.filter((entry) => entry.meal === meal) ?? []}
-        onAdd={() => setDraft({ meal })} onEdit={(entry) => setDraft({ meal, entry })}
+        key={`${date}/${meal}`} meal={meal} items={resource.data?.items.filter((entry) => entry.meal === meal)}
+        onAdd={() => startDraft(meal)} onEdit={(entry) => startDraft(meal, entry)}
         openFoodEditor={openFoodEditor} onRemoved={resource.refresh}
       >
         {draft?.meal === meal && <DietForm
-          key={draft.entry?.id ?? 'new'} date={date} meal={meal} entry={draft.entry} revision={revision}
-          openFoodEditor={openFoodEditor} onCancel={() => setDraft(undefined)}
-          onSaved={() => { setDraft(undefined); resource.refresh(); }}
+          key={draft.key} date={date} meal={meal} entry={draft.entry} revision={revision}
+          openFoodEditor={openFoodEditor} onCancel={() => { if (discardDraft()) setDraft(undefined); }}
+          onDirty={() => setDraft((current) => current?.key === draft.key && !current.dirty ? { ...current, dirty: true } : current)}
+          onSaved={() => { setDraft((current) => current?.key === draft.key ? undefined : current); resource.refresh(); }}
         />}
       </MealCard>)}
     </div>

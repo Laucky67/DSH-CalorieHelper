@@ -1,12 +1,17 @@
 import type { core, ZodType } from 'zod';
 
+export type ErrorCode = 'INVALID_INPUT' | 'NOT_FOUND' | 'CONFLICT' | 'FOOD_IN_USE' | 'BUSY' | 'STORAGE_FAILURE' | 'CANCELLED';
+
 export class TrackerError extends Error {
   readonly detail: string;
 
-  constructor(detail: string, item?: number) {
+  readonly code: ErrorCode;
+
+  constructor(detail: string, item?: number, code: ErrorCode = 'INVALID_INPUT') {
     super(item === undefined ? detail : `第 ${item} 项：${detail}`);
     this.name = 'TrackerError';
     this.detail = detail;
+    this.code = code;
   }
 }
 
@@ -30,9 +35,11 @@ function batchDetail(issue: core.$ZodIssue, item: unknown, fallback: string): st
     ? path.includes('amount') ? '食用量' : '计量数量'
     : last === 'unit' && path.includes('amount') ? '食用量单位' : labels.get(last ?? '');
   if (!field) return fallback;
-  if (issue.code === 'too_small' && issue.origin === 'number' && issue.minimum === 0) {
-    return `${field}必须${issue.inclusive ? '大于或等于' : '大于'} 0。`;
+  if (issue.code === 'too_small' && issue.origin === 'number') {
+    if (issue.minimum === 0.000001) return `${field}必须大于 0，且至少为 0.000001。`;
+    return `${field}必须${issue.inclusive ? '大于或等于' : '大于'} ${issue.minimum}。`;
   }
+  if (issue.code === 'too_big' && issue.origin === 'number') return `${field}不能超过 ${issue.maximum}。`;
   if (issue.code === 'invalid_type' && issue.expected === 'number') return `${field}必须是数字。`;
   return `${field}缺失或格式有误。`;
 }
@@ -43,7 +50,15 @@ export function validated<Value>(schema: ZodType<Value>, input: unknown, message
 
   const issue = result.error.issues[0];
   const itemIndex = issue.path[0] === 'items' && typeof issue.path[1] === 'number' ? issue.path[1] : null;
-  if (itemIndex === null) throw new TrackerError(message);
+  if (itemIndex === null) {
+    const path = issue.path[0];
+    if (path === 'date') throw new TrackerError('请选择有效的饮食日期。');
+    if (path === 'meal') throw new TrackerError('请选择早餐、午餐、晚餐或零嘴。');
+    if (path === 'items' && issue.code === 'too_small') throw new TrackerError('请至少添加一条饮食记录。');
+    if (path === 'items' && issue.code === 'too_big') throw new TrackerError(`每次最多记 ${issue.maximum} 条饮食记录，请分次提交。`);
+    if (path === 'heightCm' || path === 'weightKg') throw new TrackerError('请检查身高（厘米）和体重（千克）的数值。');
+    throw new TrackerError(message);
+  }
 
   const items = input && typeof input === 'object' && 'items' in input ? input.items : undefined;
   const item = Array.isArray(items) ? items[itemIndex] : undefined;

@@ -110,6 +110,7 @@
 
 .cal-editor { max-width: 760px; }
 .cal-form { display: grid; gap: 16px; margin-top: 18px; }
+.cal-form-fields { display: contents; }
 .cal-diet-form { margin-top: 14px; border-top: 1px solid var(--cal-line); padding-top: 14px; }
 .cal-diet-form h3 { font-size: 15px; }
 .cal-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

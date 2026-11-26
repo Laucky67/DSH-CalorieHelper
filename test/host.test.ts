@@ -25,6 +25,7 @@ test('通过实际 DSH 工具批量记餐，页面接口可读取同一份饮食
   };
 
   async function invoke(name: string, args: unknown) {
+    if (name === 'diet_create') args = { ...(args as object), operationId: crypto.randomUUID() };
     const { results } = await ctx.tools.execute({
       signal: new AbortController().signal,
       calls: [{ type: 'tool-call', id: ToolCallId('calorie-test'), name, arguments: JSON.stringify(args) }],

@@ -1,55 +1,57 @@
 import { randomUUID } from 'node:crypto';
-import type { DietEntry, DietItem, DietResult, ToolInput } from './contracts.ts';
+import type { DietEntry, DietItem, DietResult, Food, ToolInput } from './contracts.ts';
+import { checkExpected, unchanged } from './changes.ts';
 import { TrackerError } from './errors.ts';
 import { addFood, requireFood } from './foods.ts';
 import { nutritionFor } from './nutrition.ts';
-import type { TrackerState } from './state.ts';
+import type { TrackerRepository } from './repository.ts';
 
-function requireEntry({ entries }: TrackerState, id: string): DietEntry {
-  const entry = entries.find((candidate) => candidate.id === id);
-  if (!entry) throw new TrackerError('找不到这条饮食记录。');
+function requireEntry(repo: TrackerRepository, id: string): DietEntry {
+  const entry = repo.entry(id);
+  if (!entry) throw new TrackerError('找不到这条饮食记录。', undefined, 'NOT_FOUND');
   return entry;
 }
 
-function describeEntry(state: TrackerState, entry: DietEntry): DietItem {
-  const food = requireFood(state, entry.foodId);
+function describeEntry(entry: DietEntry, food: Food): DietItem {
   return { ...entry, foodName: food.name, nutrition: nutritionFor(food, entry.amount) };
 }
 
-export function addEntries(state: TrackerState, { date, meal, items }: ToolInput<'diet_create'>): DietItem[] {
+export function addEntries(repo: TrackerRepository, { date, meal, items }: ToolInput<'diet_create'>): DietItem[] {
   return items.map((item, index) => {
     try {
-      const food = 'foodId' in item ? requireFood(state, item.foodId) : addFood(state, item.newFood);
+      const food = 'foodId' in item ? requireFood(repo, item.foodId) : addFood(repo, item.newFood);
       const entry = { id: randomUUID(), date, meal, foodId: food.id, amount: item.amount };
-      const result = describeEntry(state, entry);
-      state.entries.push(entry);
+      const result = describeEntry(entry, food);
+      repo.insertEntry(entry);
       return result;
     } catch (error) {
-      if (error instanceof TrackerError) throw new TrackerError(error.detail, index + 1);
+      if (error instanceof TrackerError) throw new TrackerError(error.detail, index + 1, error.code);
       throw error;
     }
   });
 }
 
-export function queryEntries(state: TrackerState, query: ToolInput<'diet_query'>): DietResult {
-  const items = state.entries.filter((entry) => 'id' in query
-    ? entry.id === query.id
-    : entry.date === query.date && (query.meal === undefined || entry.meal === query.meal))
-    .map((entry) => describeEntry(state, entry));
-
-  return { items, totalKcal: items.reduce((total, item) => total + item.nutrition.energyKcal, 0) };
+export function queryEntries(repo: TrackerRepository, query: ToolInput<'diet_query'>, limit?: number): DietResult {
+  const entries = repo.entries(query).map(({ entry, food }) => describeEntry(entry, food));
+  const totalKcal = entries.reduce((total, item) => total + item.nutrition.energyKcal, 0);
+  if (!Number.isFinite(totalKcal)) throw new TrackerError('总热量超出范围，请检查这天的食物热量和食用量。');
+  const offset = 'date' in query ? query.offset ?? 0 : 0;
+  const pageSize = 'date' in query ? query.limit ?? limit : limit;
+  const items = pageSize === undefined ? entries : entries.slice(offset, offset + pageSize);
+  return { items, totalKcal };
 }
 
-export function editEntry(state: TrackerState, { id, changes }: ToolInput<'diet_update'>): DietItem {
-  const original = requireEntry(state, id);
+export function editEntry(repo: TrackerRepository, { id, changes, expected }: ToolInput<'diet_update'>): DietItem {
+  const original = requireEntry(repo, id);
+  checkExpected(original, expected, '这条饮食记录已被修改。请先查看最新记录，再保存你的改动。');
   const updated = { ...original, ...changes };
-  const result = describeEntry(state, updated);
-  state.entries[state.entries.indexOf(original)] = updated;
+  const result = describeEntry(updated, requireFood(repo, updated.foodId));
+  if (!unchanged(original, updated)) repo.updateEntry(updated);
   return result;
 }
 
-export function deleteEntry(state: TrackerState, id: string): { id: string } {
-  const entry = requireEntry(state, id);
-  state.entries.splice(state.entries.indexOf(entry), 1);
+export function deleteEntry(repo: TrackerRepository, id: string): { id: string } {
+  requireEntry(repo, id);
+  repo.deleteEntry(id);
   return { id };
 }
