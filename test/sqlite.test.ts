@@ -28,6 +28,7 @@ test('两个连接的写入均可见，批量记餐回执在重启后仍可重�
     assert.equal((await a.food_search({})).length, 2);
     const batch = { date, meal: 'lunch', items: [{ foodId: food.id, amount: { value: 1, unit: '份' } }], operationId: 'meal-1' };
     const saved = await a.diet_create(batch);
+    const page = await a.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-original' });
     await assert.rejects(() => b.diet_create({ ...batch, meal: 'dinner' }), { code: 'CONFLICT' });
     left.close();
     right.close();
@@ -35,7 +36,13 @@ test('两个连接的写入均可见，批量记餐回执在重启后仍可重�
     try {
       const c = createTracker(reopened);
       assert.deepEqual(await c.diet_create(batch), saved);
-      assert.equal((await c.diet_query({ date })).totalKcal, 125);
+      assert.deepEqual(await c.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-reopened' }), page);
+      assert.equal((await c.diet_query({ date })).totalKcal, 250);
+      await c.diet_confirm({ operationId: page.receiptId });
+      assert.deepEqual(await c.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-reopened' }), page);
+      const repeat = await c.diet_create_from_page({ ...batch, meal: 'breakfast', operationId: 'page-intentional-repeat' });
+      assert.notEqual(repeat.result[0].id, page.result[0].id);
+      assert.equal((await c.diet_query({ date })).totalKcal, 375);
     } finally { reopened.close(); }
     } finally { right.close(); left.close(); }
   } finally { rmSync(directory, { recursive: true, force: true }); }

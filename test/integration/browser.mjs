@@ -161,7 +161,7 @@ try {
     await value('.cal-diet-form input[name=amount]', '4');
     await click('保存记录');
     await until(() => page(`document.querySelector('.cal-diet-form').innerText.includes('暂时无法确认')`), 'ambiguous write before desktop restart');
-    await delay(1200);
+    await page(`(() => {for (const key of Object.keys(localStorage)) { if (key.startsWith('calorie-helper:pending:')) localStorage.removeItem(key); }})()`);
   }
   console.log(`Passed: DSH sidebar, meal and food editors, ${desktopPort ? 'external write' : 'external refresh'}, lost response after reload, intentional repeat and late response preserves next draft`);
   }

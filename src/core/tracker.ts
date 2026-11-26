@@ -17,7 +17,7 @@ function fingerprint(input: object): string {
 }
 
 export function createTracker(repo: TrackerRepository, today = (timeZone?: string) => localDate(new Date(), timeZone)) {
-  function write<Result>(action: string, data: { operationId?: string }, change: () => Result, signal?: AbortSignal): Promise<Result> {
+  function write<Result>(action: string, data: { operationId?: string }, change: () => Result, signal?: AbortSignal, captureReceipt?: (id: string) => void): Promise<Result> {
     const { operationId, ...input } = data;
     if (signal?.aborted) throw new TrackerError('操作已取消。', undefined, 'CANCELLED');
     return repo.write(() => {
@@ -26,14 +26,32 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
         const receipt = repo.receipt(action, operationId);
         if (receipt) {
           if (receipt.input !== digest) throw new TrackerError('本次重试的内容与先前提交不一致。', undefined, 'CONFLICT');
+          captureReceipt?.(receipt.confirmationId ?? operationId);
           return JSON.parse(receipt.result) as Result;
+        }
+        if (captureReceipt) {
+          // A restarted page can lose its operation ID before it receives the first response.
+          const pending = repo.pendingReceipt(action, digest);
+          if (pending) {
+            repo.putReceipt(action, operationId, digest, pending.result, false, pending.id);
+            captureReceipt(pending.id);
+            return JSON.parse(pending.result) as Result;
+          }
         }
       }
       const result = change();
       if (signal?.aborted) throw new TrackerError('操作已取消。', undefined, 'CANCELLED');
-      if (operationId && digest) repo.putReceipt(action, operationId, digest, JSON.stringify(result));
+      if (operationId && digest) {
+        repo.putReceipt(action, operationId, digest, JSON.stringify(result), Boolean(captureReceipt));
+        captureReceipt?.(operationId);
+      }
       return result;
     }, signal);
+  }
+
+  function saveDiet(input: unknown, signal?: AbortSignal, captureReceipt?: (id: string) => void) {
+    const data = validated(toolSchemas.diet_create, input, '请检查日期、餐别、食物和食用量。');
+    return write('diet_create', data, () => addEntries(repo, data), signal, captureReceipt);
   }
 
   return {
@@ -54,8 +72,16 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
       return write('food_delete', data, () => deleteFood(repo, data), signal);
     },
     async diet_create(input: unknown, signal?: AbortSignal) {
-      const data = validated(toolSchemas.diet_create, input, '请检查日期、餐别、食物和食用量。');
-      return write('diet_create', data, () => addEntries(repo, data), signal);
+      return saveDiet(input, signal);
+    },
+    async diet_create_from_page(input: unknown, signal?: AbortSignal) {
+      let receiptId: string | undefined;
+      const result = await saveDiet(input, signal, (id) => { receiptId = id; });
+      return { result, receiptId };
+    },
+    async diet_confirm(input: unknown, signal?: AbortSignal) {
+      const { operationId } = validated(clientSchemas.diet_confirm, input, '无法确认这次记餐，请重试。');
+      return repo.write(() => { repo.confirmReceipt('diet_create', operationId); return { id: operationId }; }, signal);
     },
     async diet_query(input: unknown) {
       return queryEntries(repo, validated(toolSchemas.diet_query, input, '请选择日期或饮食记录。'), 100);

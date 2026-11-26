@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { clientSchemas } from '../core/contracts.ts';
-import type { GetTracker, Tracker } from '../core/tracker.ts';
+import type { ClientAction } from '../core/contracts.ts';
+import type { GetTracker } from '../core/tracker.ts';
 import { describeFailure, status } from './failures.ts';
 
-const command = z.strictObject({ action: z.enum(Object.keys(clientSchemas) as [keyof Tracker, ...Array<keyof Tracker>]), input: z.unknown() });
+const command = z.strictObject({ action: z.enum(Object.keys(clientSchemas) as ClientAction[]), input: z.unknown() });
 const bodyLimit = 1024 * 1024;
 const oversized = Symbol('oversized request');
 
@@ -37,6 +38,10 @@ export function createClientRoute(getTracker: GetTracker) {
 
     try {
       const tracker = await getTracker();
+      if (parsed.data.action === 'diet_create') {
+        const receipt = await tracker.diet_create_from_page(parsed.data.input, request.signal);
+        return Response.json(receipt, { headers });
+      }
       const result = await tracker[parsed.data.action](parsed.data.input, request.signal);
       return Response.json({ result }, { headers });
     } catch (error) {

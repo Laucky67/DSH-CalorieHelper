@@ -2,7 +2,7 @@ import { clientResults } from '../core/contracts.ts';
 import type { ClientAction, ClientInput } from '../core/contracts.ts';
 import type { Tracker } from '../core/tracker.ts';
 
-export type MutationAction = Exclude<ClientAction, 'food_search' | 'diet_query' | 'daily_summary' | 'profile_get'>;
+export type MutationAction = Exclude<ClientAction, 'food_search' | 'diet_query' | 'daily_summary' | 'profile_get' | 'diet_confirm'>;
 export type ClientResult<Action extends ClientAction> = { [Key in ClientAction]: Awaited<ReturnType<Tracker[Key]>> }[Action];
 const reads = new Set<ClientAction>(['food_search', 'diet_query', 'daily_summary', 'profile_get']);
 
@@ -42,6 +42,12 @@ export async function request<Action extends ClientAction>(
   const decoded = clientResults[action].safeParse(body && typeof body === 'object' && 'result' in body ? body.result : undefined);
   if (!decoded.success) {
     throw new RequestError(read ? '无法读取这次结果，请重试。' : '暂时无法确认是否已保存。请保留原内容，再点一次保存。', 'INVALID_RESPONSE');
+  }
+  if (action === 'diet_create') {
+    const receiptId = body && typeof body === 'object' && 'receiptId' in body && body.receiptId;
+    if (typeof receiptId !== 'string') throw new RequestError('暂时无法确认是否已保存。请保留原内容，再点一次保存。', 'INVALID_RESPONSE');
+    try { await request('diet_confirm', { operationId: receiptId }, AbortSignal.timeout(2500)); }
+    catch { throw new RequestError('饮食记录已保存。请再点一次保存以确认结果。', 'CONNECTION'); }
   }
   return decoded.data as ClientResult<Action>;
 }

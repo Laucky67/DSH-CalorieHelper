@@ -28,7 +28,10 @@ export const createTables = `
     id TEXT NOT NULL,
     input TEXT NOT NULL,
     result TEXT NOT NULL CHECK (json_valid(result)),
+    pending INTEGER NOT NULL CHECK (pending IN (0,1)),
+    confirmation_id TEXT,
     PRIMARY KEY(action, id)
   ) STRICT;
+  CREATE UNIQUE INDEX receipts_pending_confirmation ON operation_receipts(action, input) WHERE pending=1;
   CREATE TABLE storage_metadata (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL) STRICT;
 `;

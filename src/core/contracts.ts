@@ -6,7 +6,8 @@ const visible = (limit: number) => oldText.max(limit).refine((text) => /[^\s\p{C
 const name = visible(160);
 const unit = visible(24);
 const id = z.string().min(1).max(160);
-const operationId = z.string().trim().min(1).max(160).optional();
+const operationKey = z.string().trim().min(1).max(160);
+const operationId = operationKey.optional();
 export const amountMin = 0.000001;
 export const amountMax = 1_000_000;
 export const nutrientMax = 1_000_000;
@@ -85,6 +86,7 @@ export const toolSchemas = {
 
 export const clientSchemas = {
   ...toolSchemas,
+  diet_confirm: z.strictObject({ operationId: operationKey }),
   daily_summary: z.strictObject({ date: dateSchema }),
   profile_get: z.strictObject({ timeZone }),
   profile_save: profileSchema.extend({ timeZone, expectedVersion: z.number().int().positive().nullable().optional(), operationId }),
@@ -97,6 +99,7 @@ const profileResult = legacyProfileSchema.extend({ version: z.number().int().pos
 export const clientResults = {
   food_search: z.array(storedFood), food_create: storedFood, food_update: storedFood, food_delete: z.strictObject({ id }),
   diet_create: z.array(itemResult), diet_query: dietResult, diet_update: itemResult, diet_delete: z.strictObject({ id }),
+  diet_confirm: z.strictObject({ id: operationKey }),
   daily_summary: dietResult.extend({ maintenanceKcal: z.number().nullable(), differenceKcal: z.number().nullable() }),
   profile_get: profileResult, profile_save: profileResult,
 };
