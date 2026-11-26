@@ -4,7 +4,7 @@ export type StoredProfile = { version: number; profile: Profile };
 
 export interface TrackerRepository {
   read<Result>(query: () => Result): Result;
-  write<Result>(change: () => Result): Result;
+  write<Result>(change: () => Result, signal?: AbortSignal): Promise<Result>;
   receipt(action: string, id: string): { input: string; result: string } | undefined;
   putReceipt(action: string, id: string, input: string, result: string): void;
   food(id: string): Food | undefined;

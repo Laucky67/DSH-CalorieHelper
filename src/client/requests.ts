@@ -9,7 +9,7 @@ function message(error: unknown): string {
 
 export function useResource<Data>(load: (signal: AbortSignal) => Promise<Data>, poll = 0, active = true) {
   const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<{ load: typeof load; data?: Data; error?: string }>();
+  const [state, setState] = useState<{ load: typeof load; data?: Data; error?: string; errorCode?: string }>();
 
   useEffect(() => {
     if (!active) return;
@@ -23,7 +23,10 @@ export function useResource<Data>(load: (signal: AbortSignal) => Promise<Data>, 
         if (!controller.signal.aborted) setState({ load, data });
       } catch (error) {
         if (!controller.signal.aborted) {
-          setState((previous) => ({ load, data: previous?.load === load ? previous.data : undefined, error: message(error) }));
+          setState((previous) => ({
+            load, data: previous?.load === load ? previous.data : undefined, error: message(error),
+            errorCode: error instanceof RequestError ? error.code : undefined,
+          }));
         }
       } finally { running = false; }
     }
@@ -43,18 +46,51 @@ export function useResource<Data>(load: (signal: AbortSignal) => Promise<Data>, 
   }, [active, load, attempt, poll]);
 
   const current = state?.load === load ? state : undefined;
-  return { data: current?.data, error: current?.error, refresh: () => setAttempt((value) => value + 1) };
+  return { data: current?.data, error: current?.error, errorCode: current?.errorCode, refresh: () => setAttempt((value) => value + 1) };
+}
+
+export function useUnsavedWarning(dirty: boolean): void {
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 }
 
 function operationId(): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+const pendingOperations = new Map<string, string>();
+
+async function pendingOperation(intent: string) {
+  const digest = await crypto.subtle?.digest('SHA-256', new TextEncoder().encode(intent));
+  const key = digest ? `calorie-helper:pending:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}` : intent;
+  let id = pendingOperations.get(key);
+  if (digest) {
+    try { id ??= sessionStorage.getItem(key) ?? undefined; }
+    catch { /* In-memory recovery remains available when storage is blocked. */ }
+  }
+  id ??= operationId();
+  pendingOperations.set(key, id);
+  if (digest) {
+    try { sessionStorage.setItem(key, id); }
+    catch { /* In-memory recovery remains available when storage is blocked. */ }
+  }
+  return { id, clear() {
+    if (pendingOperations.get(key) === id) pendingOperations.delete(key);
+    if (digest) {
+      try { if (sessionStorage.getItem(key) === id) sessionStorage.removeItem(key); }
+      catch { /* Storage can be unavailable for this origin. */ }
+    }
+  } };
+}
+
 export function useMutation() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const inFlight = useRef(false);
-  const receipts = useRef(new Map<string, string>());
 
   async function run<Action extends MutationAction>(
     action: Action,
@@ -63,25 +99,23 @@ export function useMutation() {
   ): Promise<void> {
     if (inFlight.current) return;
     inFlight.current = true;
-    const intent = JSON.stringify([action, input]);
-    const id = receipts.current.get(intent) ?? operationId();
     setBusy(true);
     setError('');
+    let operation: Awaited<ReturnType<typeof pendingOperation>> | undefined;
+    let result: ClientResult<Action>;
     try {
-      const result = await request<Action>(action, { ...input, operationId: id });
-      receipts.current.delete(intent);
-      onSaved?.(result);
+      operation = await pendingOperation(JSON.stringify([action, input]));
+      result = await request<Action>(action, { ...input, operationId: operation.id });
+      operation.clear();
     } catch (failure) {
-      if (failure instanceof RequestError && ['CONNECTION', 'STORAGE_FAILURE', 'INVALID_RESPONSE', 'BUSY'].includes(failure.code)) {
-        receipts.current.set(intent, id);
-      } else {
-        receipts.current.delete(intent);
-      }
+      if (failure instanceof RequestError && !['CONNECTION', 'STORAGE_FAILURE', 'INVALID_RESPONSE', 'BUSY'].includes(failure.code)) operation?.clear();
       setError(message(failure));
+      return;
     } finally {
       inFlight.current = false;
       setBusy(false);
     }
+    onSaved?.(result);
   }
 
   return { busy, error, run, clearError: () => setError('') };

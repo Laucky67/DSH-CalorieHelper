@@ -25,7 +25,9 @@ const portions = {
   description: '每 1 个自定义单位对应的数量，例如 1 碗等于 150 g。',
 } as const;
 const newFood = object({ name: required(string), nutrition: required(nutrition), portions });
-const operationId = { ...string, description: '为每次操作生成唯一标识。同一次操作重试时必须复用此标识及原参数。' } as const;
+const operationId = required({ ...string, description: '为每次操作生成唯一标识。同一次操作重试时必须复用此标识及原参数。' });
+const foodChanges = object({ name: string, nutrition, portions });
+const entryChanges = object({ date, meal, foodId: string, amount: quantity });
 const limit = { type: 'integer', description: '每页条数，默认 100，上限 200。' } as const;
 const offset = { type: 'integer', description: '从第几条开始，第一页填 0。' } as const;
 
@@ -33,13 +35,13 @@ export const toolParameters: Record<ToolName, ParameterSchemaSpec> = {
   food_search: { id: string, query: string, limit, offset },
   food_create: { ...newFood.properties, operationId },
   food_update: {
-    id, changes: required(object({ name: string, nutrition, portions })), operationId,
+    id, changes: required(foodChanges), expected: foodChanges, operationId,
   },
-  food_delete: { id, operationId },
+  food_delete: { id, expected: foodChanges, operationId },
   diet_create: {
     date: required(date),
     meal: required(meal),
-    operationId: required(operationId),
+    operationId,
     items: required({
       type: 'array',
       items: object({ foodId: string, newFood, amount: required(quantity) }),
@@ -47,9 +49,9 @@ export const toolParameters: Record<ToolName, ParameterSchemaSpec> = {
   },
   diet_query: { id: string, date, meal, limit, offset },
   diet_update: {
-    id, changes: required(object({ date, meal, foodId: string, amount: quantity })), operationId,
+    id, changes: required(entryChanges), expected: entryChanges, operationId,
   },
-  diet_delete: { id, operationId },
+  diet_delete: { id, expected: entryChanges, operationId },
 };
 
 const foodResult = object({ ...newFood.properties, id });

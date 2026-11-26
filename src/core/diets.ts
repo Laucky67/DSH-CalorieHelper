@@ -50,8 +50,9 @@ export function editEntry(repo: TrackerRepository, { id, changes, expected }: To
   return result;
 }
 
-export function deleteEntry(repo: TrackerRepository, id: string): { id: string } {
-  requireEntry(repo, id);
+export function deleteEntry(repo: TrackerRepository, { id, expected }: ToolInput<'diet_delete'>): { id: string } {
+  const entry = requireEntry(repo, id);
+  checkExpected(entry, expected, '这条记录已被修改。请核对最新记录后再决定是否删除。');
   repo.deleteEntry(id);
   return { id };
 }

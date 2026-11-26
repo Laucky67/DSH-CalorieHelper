@@ -15,7 +15,7 @@ const burger = {
 };
 
 test('批量记餐同时写入已有食物和新食物，并按食用量查询营养', async () => {
-  const storage = memoryStorage();
+  const storage = await memoryStorage();
   const tracker = createTracker(storage);
   const saved = await tracker.food_create(rice);
   const added = await tracker.diet_create({ date, meal: 'lunch', items: [
@@ -36,7 +36,7 @@ test('批量记餐同时写入已有食物和新食物，并按食用量查询�
 });
 
 test('批量记餐包含无法计算摄入热量的食用量时，食物和记录均不写入', async () => {
-  const tracker = createTracker(memoryStorage());
+  const tracker = createTracker(await memoryStorage());
   await assert.rejects(tracker.diet_create({ date, meal: 'lunch', items: [
     { newFood: rice, amount: { value: 1, unit: '碗' } },
     { newFood: burger, amount: { value: 1, unit: 'g' } },
@@ -46,7 +46,7 @@ test('批量记餐包含无法计算摄入热量的食用量时，食物和记�
 });
 
 test('饮食记录可更正日期和餐别，食物资料即时反映在饮食清单', async () => {
-  const tracker = createTracker(memoryStorage());
+  const tracker = createTracker(await memoryStorage());
   const food = await tracker.food_create(rice);
   const [entry] = await tracker.diet_create({ date, meal: 'dinner', items: [
     { foodId: food.id, amount: { value: 1, unit: '碗' } },

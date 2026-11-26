@@ -51,8 +51,9 @@ export function editFood(repo: TrackerRepository, { id, changes, expected }: Too
   return food;
 }
 
-export function deleteFood(repo: TrackerRepository, id: string): { id: string } {
-  requireFood(repo, id);
+export function deleteFood(repo: TrackerRepository, { id, expected }: ToolInput<'food_delete'>): { id: string } {
+  const food = requireFood(repo, id);
+  checkExpected({ ...food, portions: food.portions ?? [] }, expected, '这条食物已被修改。请核对最新资料后再决定是否删除。');
   if (repo.foodInUse(id)) {
     throw new TrackerError('这条食物已用于饮食记录，无法删除。', undefined, 'FOOD_IN_USE');
   }

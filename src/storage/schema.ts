@@ -1,5 +1,3 @@
-export const schemaVersion = 1;
-
 export const createTables = `
   CREATE TABLE foods (
     id TEXT PRIMARY KEY NOT NULL,

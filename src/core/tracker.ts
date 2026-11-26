@@ -17,7 +17,7 @@ function fingerprint(input: object): string {
 }
 
 export function createTracker(repo: TrackerRepository, today = (timeZone?: string) => localDate(new Date(), timeZone)) {
-  function write<Result>(action: string, data: { operationId?: string }, change: () => Result, signal?: AbortSignal): Result {
+  function write<Result>(action: string, data: { operationId?: string }, change: () => Result, signal?: AbortSignal): Promise<Result> {
     const { operationId, ...input } = data;
     if (signal?.aborted) throw new TrackerError('操作已取消。', undefined, 'CANCELLED');
     return repo.write(() => {
@@ -33,7 +33,7 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
       if (signal?.aborted) throw new TrackerError('操作已取消。', undefined, 'CANCELLED');
       if (operationId && digest) repo.putReceipt(action, operationId, digest, JSON.stringify(result));
       return result;
-    });
+    }, signal);
   }
 
   return {
@@ -51,7 +51,7 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
     },
     async food_delete(input: unknown, signal?: AbortSignal) {
       const data = validated(toolSchemas.food_delete, input, '请选择要删除的食物。');
-      return write('food_delete', data, () => deleteFood(repo, data.id), signal);
+      return write('food_delete', data, () => deleteFood(repo, data), signal);
     },
     async diet_create(input: unknown, signal?: AbortSignal) {
       const data = validated(toolSchemas.diet_create, input, '请检查日期、餐别、食物和食用量。');
@@ -66,7 +66,7 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
     },
     async diet_delete(input: unknown, signal?: AbortSignal) {
       const data = validated(toolSchemas.diet_delete, input, '请选择要删除的饮食记录。');
-      return write('diet_delete', data, () => deleteEntry(repo, data.id), signal);
+      return write('diet_delete', data, () => deleteEntry(repo, data), signal);
     },
     async daily_summary(input: unknown) {
       const { date } = validated(clientSchemas.daily_summary, input, '请选择有效的日期。');
@@ -96,3 +96,4 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
 }
 
 export type Tracker = ReturnType<typeof createTracker>;
+export type GetTracker = () => Tracker | Promise<Tracker>;

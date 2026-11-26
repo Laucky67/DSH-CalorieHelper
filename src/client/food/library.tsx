@@ -6,7 +6,7 @@ import { EditButton, ErrorNotice, Loading } from '../feedback.tsx';
 import { energyText } from '../presentation.ts';
 import { useMutation, useResource } from '../requests.ts';
 
-export function FoodLibrary({ openFoodEditor, revision }: { openFoodEditor: OpenFoodEditor; revision: number }) {
+export function FoodLibrary({ openFoodEditor, revision, active }: { openFoodEditor: OpenFoodEditor; revision: number; active: boolean }) {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const limit = 50;
@@ -14,11 +14,11 @@ export function FoodLibrary({ openFoodEditor, revision }: { openFoodEditor: Open
   const load = useCallback((signal: AbortSignal) => request('food_search', {
     query: query.trim() || undefined, limit: limit + 1, offset: page * limit,
   }, signal), [query, revision, page]);
-  const resource = useResource(load, 4000);
+  const resource = useResource(load, 4000, active);
   const remove = useMutation();
 
-  function confirmDelete(food: Food) {
-    void remove.run('food_delete', { id: food.id }, () => {
+  function confirmDelete({ id, name, nutrition, portions }: Food) {
+    void remove.run('food_delete', { id, expected: { name, nutrition, portions: portions ?? [] } }, () => {
       setPendingDelete(undefined);
       resource.refresh();
     });
@@ -53,7 +53,7 @@ export function FoodLibrary({ openFoodEditor, revision }: { openFoodEditor: Open
         {pendingDelete?.id === food.id && <div className="cal-delete-prompt">
           <span>删除「{food.name}」？</span>
           <button autoFocus className="cal-button cal-small" type="button" onClick={() => setPendingDelete(undefined)} disabled={remove.busy}>取消</button>
-          <button className="cal-button cal-danger cal-small" type="button" disabled={remove.busy} onClick={() => confirmDelete(food)}>确认删除</button>
+          <button className="cal-button cal-danger cal-small" type="button" disabled={remove.busy} onClick={() => confirmDelete(pendingDelete)}>确认删除</button>
         </div>}
       </li>)}
     </ul>

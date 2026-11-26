@@ -15,11 +15,11 @@ export function MealCard({ meal, items, onAdd, onEdit, onRemoved, openFoodEditor
   openFoodEditor: OpenFoodEditor;
   children?: ReactNode;
 }) {
-  const [pendingDelete, setPendingDelete] = useState<string>();
+  const [pendingDelete, setPendingDelete] = useState<DietItem>();
   const remove = useMutation();
 
-  function confirmDelete(id: string) {
-    void remove.run('diet_delete', { id }, () => {
+  function confirmDelete({ id, date, meal, foodId, amount }: DietItem) {
+    void remove.run('diet_delete', { id, expected: { date, meal, foodId, amount } }, () => {
       setPendingDelete(undefined);
       onRemoved();
     });
@@ -45,14 +45,14 @@ export function MealCard({ meal, items, onAdd, onEdit, onRemoved, openFoodEditor
             <button className="cal-button cal-small" type="button" onClick={() => onEdit(entry)}>修改记录</button>
             <button className="cal-button cal-small" type="button" disabled={remove.busy} onClick={() => {
               remove.clearError();
-              setPendingDelete(entry.id);
+              setPendingDelete(entry);
             }}>删除</button>
           </div>
         </div>
-        {pendingDelete === entry.id && <div className="cal-delete-prompt">
+        {pendingDelete?.id === entry.id && <div className="cal-delete-prompt">
           <span>删除「{entry.foodName}」这条记录？</span>
           <button autoFocus className="cal-button cal-small" type="button" onClick={() => setPendingDelete(undefined)} disabled={remove.busy}>取消</button>
-          <button className="cal-button cal-danger cal-small" type="button" onClick={() => confirmDelete(entry.id)} disabled={remove.busy}>确认删除</button>
+          <button className="cal-button cal-danger cal-small" type="button" onClick={() => confirmDelete(pendingDelete)} disabled={remove.busy}>确认删除</button>
         </div>}
       </li>)}
     </ul>

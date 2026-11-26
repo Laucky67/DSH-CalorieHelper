@@ -19,8 +19,8 @@ test('两个连接的写入均可见，批量记餐回执在重启后仍可重�
     const left = openSqlite(file);
     const right = openSqlite(file);
     try {
-    left.initialize();
-    right.initialize();
+    await left.initialize();
+    await right.initialize();
     const a = createTracker(left);
     const b = createTracker(right);
     const food = await a.food_create(foodInput('米饭'));
@@ -49,10 +49,10 @@ test('迁移失败时回滚全部旧数据，修复来源后仍可以重新迁�
       entries: [{ id: 'entry', date, meal: 'lunch', foodId: 'missing', amount: { value: 2, unit: '份' } }],
       profiles: [{ effectiveDate: date, profile: { weightKg: 68 } }],
     };
-    assert.throws(() => store.initialize({ state }), /不存在的食物/);
+    await assert.rejects(() => store.initialize({ state }), /不存在的食物/);
     assert.equal(store.needsInitialization(), true);
     state.entries[0].foodId = 'rice';
-    store.initialize({ state, sourceDigest: 'fixture-digest' });
+    await store.initialize({ state, sourceDigest: 'fixture-digest' });
     const tracker = createTracker(store, () => date);
     assert.equal((await tracker.diet_query({ date })).totalKcal, 250);
     assert.equal((await tracker.profile_get()).weightKg, 68);
@@ -63,7 +63,7 @@ test('迁移失败时回滚全部旧数据，修复来源后仍可以重新迁�
 test('编辑食用量保留另一处的餐别修正，拒绝覆盖另一处对食用量的修改', async () => {
   const store = openSqlite(':memory:');
   try {
-    store.initialize();
+    await store.initialize();
     const tracker = createTracker(store);
     const amount = { value: 1, unit: '份' };
     const [entry] = await tracker.diet_create({ date, meal: 'lunch', items: [{ newFood: foodInput('米饭'), amount }] });
@@ -71,6 +71,7 @@ test('编辑食用量保留另一处的餐别修正，拒绝覆盖另一处对�
     const update = { id: entry.id, changes: { amount: { value: 2, unit: '份' } }, expected: { amount } };
     assert.equal((await tracker.diet_update(update)).meal, 'dinner');
     await assert.rejects(() => tracker.diet_update(update), { code: 'CONFLICT' });
+    await assert.rejects(() => tracker.diet_delete({ id: entry.id, expected: { meal: 'lunch', amount } }), { code: 'CONFLICT' });
     assert.equal((await tracker.diet_query({ date })).totalKcal, 250);
   } finally { store.close(); }
 });
@@ -81,21 +82,54 @@ test('另一个连接正在写入时仍可查询，写入返回可重试的忙�
   const store = openSqlite(file);
   const writer = new DatabaseSync(file);
   try {
-    store.initialize();
+    await store.initialize();
     const tracker = createTracker(store);
     await tracker.food_create(foodInput('米饭'));
     writer.exec('BEGIN IMMEDIATE');
-    const route = createClientRoute(tracker);
+    const route = createClientRoute(() => tracker);
     const save = () => route(new Request('https://dsh.example/api/calorie-helper', {
       method: 'POST', body: JSON.stringify({ action: 'food_create', input: foodInput('青菜') }),
     }));
+    const waiting = save();
+    await new Promise((resolve) => setTimeout(resolve, 40));
     assert.equal((await tracker.food_search({})).length, 1);
-    const blocked = await save();
+    const blocked = await waiting;
     assert.equal(blocked.status, 503);
     assert.equal((await blocked.json()).code, 'BUSY');
+    const cancellation = new AbortController();
+    const cancelled = tracker.food_create(foodInput('凉菜'), cancellation.signal);
+    cancellation.abort();
+    await assert.rejects(() => cancelled, { code: 'CANCELLED' });
     writer.exec('ROLLBACK');
     assert.equal((await save()).status, 200);
     assert.equal((await tracker.food_search({})).length, 2);
+  } finally {
+    writer.close();
+    store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('批次第二条被数据库拒绝时不会留下第一条、食物或成功回执', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'calorie-sqlite-abort-'));
+  const file = join(directory, 'calorie.sqlite');
+  const store = openSqlite(file);
+  const writer = new DatabaseSync(file);
+  try {
+    await store.initialize();
+    writer.exec(`CREATE TRIGGER fail_second_insert BEFORE INSERT ON diet_entries WHEN NEW.quantity=2
+      BEGIN SELECT RAISE(ABORT, 'test storage failure'); END;`);
+    const tracker = createTracker(store);
+    const batch = { date, meal: 'lunch', operationId: 'test-rollback', items: [
+      { newFood: foodInput('米饭'), amount: { value: 1, unit: '份' } },
+      { newFood: foodInput('青菜'), amount: { value: 2, unit: '份' } },
+    ] };
+    await assert.rejects(() => tracker.diet_create(batch), /test storage failure/);
+    assert.deepEqual(await tracker.food_search({}), []);
+    assert.deepEqual(await tracker.diet_query({ date }), { totalKcal: 0, items: [] });
+    writer.exec('DROP TRIGGER fail_second_insert');
+    assert.equal((await tracker.diet_create(batch)).length, 2);
+    assert.equal((await tracker.diet_query({ date })).totalKcal, 375);
   } finally {
     writer.close();
     store.close();

@@ -11,8 +11,8 @@ const shared = {
 const builds = await Promise.all([
   build({
     ...shared,
-    entryPoints: ['src/host/index.ts'],
-    outfile: 'lib/index.js',
+    entryPoints: { index: 'src/host/index.ts', 'data-layout': 'src/storage/layout.ts' },
+    outdir: 'lib',
     platform: 'node',
     target: 'node24',
     packages: 'external',

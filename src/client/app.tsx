@@ -4,6 +4,7 @@ import { DailyPage } from './daily/page.tsx';
 import { FoodEditor } from './food/editor.tsx';
 import { FoodLibrary } from './food/library.tsx';
 import { ProfilePage } from './profile/page.tsx';
+import { useUnsavedWarning } from './requests.ts';
 import stylesheet from './styles.css';
 
 type Page = 'daily' | 'foods' | 'profile';
@@ -20,6 +21,7 @@ export function CalorieApp() {
   const [editorDirty, setEditorDirty] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
   const [revision, setRevision] = useState(0);
+  useUnsavedWarning(editorDirty || profileDirty);
   const openFoodEditor: OpenFoodEditor = (foodId, onSaved) => {
     const next = { foodId, onSaved, trigger: document.activeElement };
     editorRef.current = next;
@@ -71,7 +73,7 @@ export function CalorieApp() {
         <DailyPage openFoodEditor={openFoodEditor} revision={revision} active={page === 'daily' && !editor} />
       </div>
       {page === 'foods' && <div hidden={Boolean(editor)}>
-        <FoodLibrary openFoodEditor={openFoodEditor} revision={revision} />
+        <FoodLibrary openFoodEditor={openFoodEditor} revision={revision} active={!editor} />
       </div>}
       {page === 'profile' && !editor && <ProfilePage onDirty={() => setProfileDirty(true)} onSaved={() => {
         setProfileDirty(false);

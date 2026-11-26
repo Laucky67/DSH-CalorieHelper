@@ -4,7 +4,7 @@ import { createTracker } from '../src/core/tracker.ts';
 import { memoryStorage } from './support.ts';
 
 test('按食物 ID 读取已保存的营养资料', async () => {
-  const tracker = createTracker(memoryStorage());
+  const tracker = createTracker(await memoryStorage());
   const food = await tracker.food_create({
     name: '胡萝卜',
     nutrition: { per: { value: 100, unit: 'g' }, values: { energyKcal: 41, fatG: 0 } },
@@ -14,7 +14,7 @@ test('按食物 ID 读取已保存的营养资料', async () => {
 });
 
 test('自然名称搜索按相关度返回食物，完全匹配优先', async () => {
-  const tracker = createTracker(memoryStorage());
+  const tracker = createTracker(await memoryStorage());
   const nutrition = { per: { value: 100, unit: 'g' }, values: { energyKcal: 41 } };
   const first = await tracker.food_create({ name: '山姆胡萝卜', nutrition });
   await tracker.food_create({ name: '白米饭', nutrition });
@@ -24,7 +24,7 @@ test('自然名称搜索按相关度返回食物，完全匹配优先', async ()
 });
 
 test('重名保存失败且可继续修改和删除食物', async () => {
-  const tracker = createTracker(memoryStorage());
+  const tracker = createTracker(await memoryStorage());
   const nutrition = { per: { value: 1, unit: '个' }, values: { energyKcal: 100 } };
   const food = await tracker.food_create({ name: '面包', nutrition });
   await assert.rejects(tracker.food_create({ name: ' 面包 ', nutrition }), /同名/);

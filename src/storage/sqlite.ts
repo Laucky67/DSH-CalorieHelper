@@ -1,11 +1,15 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { SQLOutputValue } from 'node:sqlite';
+import { setTimeout as delay } from 'node:timers/promises';
 import type { DietEntry, Food, Profile, Quantity, ToolInput } from '../core/contracts.ts';
 import { naturalFoodName, plainFoodName } from '../core/food-name.ts';
 import { nutritionFor } from '../core/nutrition.ts';
 import type { TrackerRepository } from '../core/repository.ts';
-import { createTables, schemaVersion } from './schema.ts';
+import { TrackerError } from '../core/errors.ts';
+import { applicationId, schemaVersion } from './layout.ts';
+import { createTables } from './schema.ts';
 import type { LegacyState } from './legacy-state.ts';
+import { isBusy } from './sqlite-errors.ts';
 
 type Row = Record<string, SQLOutputValue>;
 type LegacyImport = { state: LegacyState; sourceDigest?: string };
@@ -26,13 +30,16 @@ function decodeEntry(row: Row): DietEntry {
 }
 
 export function openSqlite(path: string) {
-  const database = new DatabaseSync(path, { timeout: 350, enableForeignKeyConstraints: true });
+  const database = new DatabaseSync(path, { timeout: 15, enableForeignKeyConstraints: true });
   let closed = false;
   try {
     database.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;');
     const existing = version();
     if (existing !== 0 && existing !== schemaVersion) {
       throw new Error(`不支持该卡路里数据库版本（${existing}）。`);
+    }
+    if (existing !== 0 && database.prepare('PRAGMA application_id').get()?.application_id !== applicationId) {
+      throw new Error('无法识别卡路里记录数据库。');
     }
   } catch (error) {
     database.close();
@@ -43,8 +50,7 @@ export function openSqlite(path: string) {
     return Number(database.prepare('PRAGMA user_version').get()?.user_version);
   }
 
-  function transaction<Result>(begin: 'BEGIN' | 'BEGIN IMMEDIATE', run: () => Result): Result {
-    database.exec(begin);
+  function commit<Result>(run: () => Result): Result {
     try {
       const result = run();
       database.exec('COMMIT');
@@ -53,6 +59,23 @@ export function openSqlite(path: string) {
       if (database.isTransaction) database.exec('ROLLBACK');
       throw error;
     }
+  }
+
+  async function write<Result>(change: () => Result, signal?: AbortSignal): Promise<Result> {
+    const deadline = performance.now() + 350;
+    while (true) {
+      if (closed || signal?.aborted) throw new TrackerError('操作已取消。', undefined, 'CANCELLED');
+      try { database.exec('BEGIN IMMEDIATE'); break; }
+      catch (error) {
+        if (!isBusy(error) || performance.now() >= deadline) throw error;
+        try { await delay(35, undefined, { signal }); }
+        catch (interruption) {
+          if (!signal?.aborted) throw interruption;
+          throw new TrackerError('操作已取消。', undefined, 'CANCELLED');
+        }
+      }
+    }
+    return commit(change);
   }
 
   function foodValues(food: Food) {
@@ -86,8 +109,8 @@ export function openSqlite(path: string) {
   }
 
   const repo: TrackerRepository = {
-    read: (query) => transaction('BEGIN', query),
-    write: (change) => transaction('BEGIN IMMEDIATE', change),
+    read(query) { database.exec('BEGIN'); return commit(query); },
+    write,
     receipt(action, id) {
       const row = database.prepare('SELECT input,result FROM operation_receipts WHERE action=? AND id=?').get(action, id);
       return row ? { input: String(row.input), result: String(row.result) } : undefined;
@@ -136,10 +159,10 @@ export function openSqlite(path: string) {
   return {
     ...repo,
     needsInitialization: () => version() === 0,
-    initialize(legacy?: LegacyImport) {
-      if (version() === schemaVersion) return;
-      repo.write(() => {
-        if (version() === schemaVersion) return;
+    async initialize(legacy?: LegacyImport) {
+      if (version() === schemaVersion) return false;
+      return repo.write(() => {
+        if (version() === schemaVersion) return false;
         database.exec(createTables);
         if (legacy) {
           for (const food of legacy.state.foods) repo.insertFood(food);
@@ -152,7 +175,8 @@ export function openSqlite(path: string) {
           for (const version of legacy.state.profiles) repo.appendProfile(version.effectiveDate, version.profile);
           if (legacy.sourceDigest) database.prepare('INSERT INTO storage_metadata VALUES(?,?)').run('legacy_digest', legacy.sourceDigest);
         }
-        database.exec(`PRAGMA user_version=${schemaVersion}`);
+        database.exec(`PRAGMA application_id=${applicationId}; PRAGMA user_version=${schemaVersion};`);
+        return true;
       });
     },
     legacyDigest() {

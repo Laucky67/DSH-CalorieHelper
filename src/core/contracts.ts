@@ -65,11 +65,13 @@ const timeZone = z.string().refine((zone) => {
 }).optional();
 
 const pagination = { limit: z.number().int().min(1).max(200).optional(), offset: z.number().int().min(0).optional() };
+const expectedFood = legacyFoodSchema.partial().optional();
+const expectedEntry = entrySchema.extend({ amount: legacyQuantitySchema }).partial().optional();
 export const toolSchemas = {
   food_search: z.union([z.strictObject({ id }), z.strictObject({ query: name.optional(), ...pagination })]),
   food_create: foodSchema.extend({ operationId }),
-  food_update: z.strictObject({ id, changes: foodSchema.partial(), expected: legacyFoodSchema.partial().optional(), operationId }),
-  food_delete: z.strictObject({ id, operationId }),
+  food_update: z.strictObject({ id, changes: foodSchema.partial(), expected: expectedFood, operationId }),
+  food_delete: z.strictObject({ id, expected: expectedFood, operationId }),
   diet_create: z.strictObject({
     date: dateSchema,
     meal: mealSchema,
@@ -77,8 +79,8 @@ export const toolSchemas = {
     operationId,
   }),
   diet_query: z.union([z.strictObject({ id }), z.strictObject({ date: dateSchema, meal: mealSchema.optional(), ...pagination })]),
-  diet_update: z.strictObject({ id, changes: entrySchema.partial(), expected: entrySchema.extend({ amount: legacyQuantitySchema }).partial().optional(), operationId }),
-  diet_delete: z.strictObject({ id, operationId }),
+  diet_update: z.strictObject({ id, changes: entrySchema.partial(), expected: expectedEntry, operationId }),
+  diet_delete: z.strictObject({ id, expected: expectedEntry, operationId }),
 };
 
 export const clientSchemas = {

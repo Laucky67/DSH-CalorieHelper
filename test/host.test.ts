@@ -16,16 +16,18 @@ test('通过实际 DSH 工具批量记餐，页面接口可读取同一份饮食
   await ctx.plugin(SystemPrompt);
   await ctx.plugin(Tools);
   await ctx.plugin(NativeExecutor);
-  const tracker = createTracker(memoryStorage());
-  registerTools(ctx, tracker);
-  const page = createClientRoute(tracker);
+  const tracker = createTracker(await memoryStorage());
+  registerTools(ctx, () => tracker);
+  const page = createClientRoute(() => tracker);
   const date = '2026-11-26';
   const rice = {
     name: '米饭', nutrition: { per: { value: 100, unit: 'g' }, values: { energyKcal: 116, proteinG: 2.6 } },
   };
 
   async function invoke(name: string, args: unknown) {
-    if (name === 'diet_create') args = { ...(args as object), operationId: crypto.randomUUID() };
+    if (name.endsWith('_create') || name.endsWith('_update') || name.endsWith('_delete')) {
+      args = { operationId: crypto.randomUUID(), ...(args as object) };
+    }
     const { results } = await ctx.tools.execute({
       signal: new AbortController().signal,
       calls: [{ type: 'tool-call', id: ToolCallId('calorie-test'), name, arguments: JSON.stringify(args) }],
@@ -70,4 +72,11 @@ test('通过实际 DSH 工具批量记餐，页面接口可读取同一份饮食
   const failure = await pageError.json();
   assert.match(failure.error, /补充份量换算/);
   assert.doesNotMatch(failure.error, /第 1 项/);
+
+  const id = payload.result.items[0].id as string;
+  const update = { id, changes: { amount: { value: 200, unit: 'g' } }, operationId: 'tool-edit-first' };
+  assert.equal((await invoke('diet_update', update)).isError, false);
+  assert.equal((await invoke('diet_update', { id, changes: { amount: { value: 250, unit: 'g' } } })).isError, false);
+  assert.equal((await invoke('diet_update', update)).isError, false);
+  assert.equal(((await invoke('diet_query', { id })).value as { totalKcal: number }).totalKcal, 290);
 });

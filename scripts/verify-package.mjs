@@ -8,4 +8,5 @@ const client = await readFile(manifest.exports['./client'], 'utf8');
 assert(client.includes(`window.__ModuleLoader__.load({ id: ${JSON.stringify(manifest.name)}`));
 const patch = await readFile(manifest.dsh.bundle.patch, 'utf8');
 assert(patch.includes(`name: ${manifest.name}`));
+assert.equal(typeof (await import('../lib/data-layout.js')).dataDirectory, 'function');
 await readFile(manifest.bin['calorie-helper-data']);

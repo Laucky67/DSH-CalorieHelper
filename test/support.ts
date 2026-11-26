@@ -1,7 +1,7 @@
 import { openSqlite } from '../src/storage/sqlite.ts';
 
-export function memoryStorage() {
+export async function memoryStorage() {
   const store = openSqlite(':memory:');
-  store.initialize();
+  await store.initialize();
   return store;
 }

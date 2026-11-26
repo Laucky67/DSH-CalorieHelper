@@ -1,0 +1,19 @@
+{
+  "unit": { "name": "calorie_helper", "version": 1 },
+  "global": {
+    "foods": [
+      { "id": "rice", "name": "合成米饭", "nutrition": { "per": { "value": 100, "unit": "g" }, "values": { "energyKcal": 125, "fatG": 0 } }, "portions": [{ "unit": "碗", "equals": { "value": 150, "unit": "g" } }] },
+      { "id": "burger", "name": "合成鸡腿堡", "nutrition": { "per": { "value": 1, "unit": "个" }, "values": { "energyKcal": 425 } } }
+    ],
+    "entries": [
+      { "id": "meal-01", "date": "2026-11-25", "meal": "lunch", "foodId": "rice", "amount": { "value": 1, "unit": "碗" } },
+      { "id": "meal-02", "date": "2026-11-26", "meal": "dinner", "foodId": "burger", "amount": { "value": 0.5, "unit": "个" } }
+    ],
+    "profiles": [
+      { "effectiveDate": "2026-11-25", "profile": { "birthDate": "2004-06-08", "sex": "female", "heightCm": 165, "weightKg": 63, "activity": "low-active" } },
+      { "effectiveDate": "2026-11-26", "profile": { "birthDate": "2004-06-08", "sex": "female", "heightCm": 165, "weightKg": 65, "activity": "low-active" } },
+      { "effectiveDate": "2026-11-26", "profile": { "birthDate": "2004-06-08", "sex": "female", "heightCm": 165, "weightKg": 64, "activity": "low-active" } }
+    ]
+  },
+  "tables": {}
+}

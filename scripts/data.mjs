@@ -4,18 +4,18 @@ import { access, link, mkdir, mkdtemp, readdir, rmdir, unlink } from 'node:fs/pr
 import { join, resolve } from 'node:path';
 import { backup, DatabaseSync } from 'node:sqlite';
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths';
+import { applicationId, dataDirectory, databaseFilename, schemaVersion } from '../lib/data-layout.js';
 
 const [command, file, extra] = process.argv.slice(2);
-const directory = join(resolveDshHome(), 'storages', 'calorie-helper');
-const database = join(directory, 'calorie.sqlite');
+const directory = dataDirectory(resolveDshHome());
+const database = join(directory, databaseFilename);
 
 function openBackupSource(path) {
   const source = new DatabaseSync(path, { readOnly: true, timeout: 2000 });
   try {
     const version = source.prepare('PRAGMA user_version').get().user_version;
-    const tables = source.prepare(`SELECT count(*) AS total FROM sqlite_schema WHERE type='table'
-      AND name IN ('foods','diet_entries','profile_versions','operation_receipts','storage_metadata')`).get().total;
-    if (version !== 1 || tables !== 5 || source.prepare('PRAGMA quick_check').get().quick_check !== 'ok' ||
+    const identity = source.prepare('PRAGMA application_id').get().application_id;
+    if (version !== schemaVersion || identity !== applicationId || source.prepare('PRAGMA quick_check').get().quick_check !== 'ok' ||
         source.prepare('PRAGMA foreign_key_check').get()) {
       throw new Error('文件不是可用的卡路里记录 SQLite 数据库。');
     }
