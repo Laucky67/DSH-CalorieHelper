@@ -58,7 +58,7 @@ export function nutritionFor(food: FoodInput, amount: Quantity): NutritionValues
     }
   }
   if (scale === undefined) {
-    throw new TrackerError(`「${food.name}」还不能按「${amount.unit}」计算热量，请选择可用单位或补充份量换算。`);
+    throw new TrackerError(`「${food.name}」还不能按「${amount.unit}」计算热量，请选择可用单位或补充份量换算。`, undefined, 'INVALID_UNIT');
   }
 
   const ratio = amount.value * scale / per.value;

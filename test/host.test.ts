@@ -80,3 +80,11 @@ test('通过实际 DSH 工具批量记餐，页面接口可读取同一份饮食
   assert.equal((await invoke('diet_update', update)).isError, false);
   assert.equal(((await invoke('diet_query', { id })).value as { totalKcal: number }).totalKcal, 290);
 });
+
+test('页面接口在读取过大的请求后拒绝处理，正常请求仍可使用', async () => {
+  const tracker = createTracker(await memoryStorage());
+  const route = createClientRoute(() => tracker);
+  const page = (body: string) => route(new Request('https://dsh.example/api/calorie-helper', { method: 'POST', body }));
+  assert.equal((await page(' '.repeat(1024 * 1024 + 1))).status, 413);
+  assert.equal((await page('{"action":"food_search","input":{}}')).status, 200);
+});

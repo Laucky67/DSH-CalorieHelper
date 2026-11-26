@@ -36,7 +36,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => ctx.connection.fetch.register({
     path: '/api/calorie-helper',
     methods: ['POST'],
-    requestBody: 'buffered',
+    requestBody: 'streaming',
     fetch: createClientRoute(getTracker),
   }), 'calorie-helper: page data');
   registerTools(ctx, getTracker);

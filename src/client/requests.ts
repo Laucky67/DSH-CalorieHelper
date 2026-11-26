@@ -69,19 +69,19 @@ async function pendingOperation(intent: string) {
   const key = digest ? `calorie-helper:pending:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}` : intent;
   let id = pendingOperations.get(key);
   if (digest) {
-    try { id ??= sessionStorage.getItem(key) ?? undefined; }
+    try { id ??= localStorage.getItem(key) ?? undefined; }
     catch { /* In-memory recovery remains available when storage is blocked. */ }
   }
   id ??= operationId();
   pendingOperations.set(key, id);
   if (digest) {
-    try { sessionStorage.setItem(key, id); }
+    try { localStorage.setItem(key, id); }
     catch { /* In-memory recovery remains available when storage is blocked. */ }
   }
   return { id, clear() {
     if (pendingOperations.get(key) === id) pendingOperations.delete(key);
     if (digest) {
-      try { if (sessionStorage.getItem(key) === id) sessionStorage.removeItem(key); }
+      try { if (localStorage.getItem(key) === id) localStorage.removeItem(key); }
       catch { /* Storage can be unavailable for this origin. */ }
     }
   } };
@@ -89,7 +89,7 @@ async function pendingOperation(intent: string) {
 
 export function useMutation() {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<{ text: string; code?: string }>();
   const inFlight = useRef(false);
 
   async function run<Action extends MutationAction>(
@@ -100,7 +100,7 @@ export function useMutation() {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
-    setError('');
+    setError(undefined);
     let operation: Awaited<ReturnType<typeof pendingOperation>> | undefined;
     let result: ClientResult<Action>;
     try {
@@ -109,7 +109,7 @@ export function useMutation() {
       operation.clear();
     } catch (failure) {
       if (failure instanceof RequestError && !['CONNECTION', 'STORAGE_FAILURE', 'INVALID_RESPONSE', 'BUSY'].includes(failure.code)) operation?.clear();
-      setError(message(failure));
+      setError({ text: message(failure), code: failure instanceof RequestError ? failure.code : undefined });
       return;
     } finally {
       inFlight.current = false;
@@ -118,5 +118,5 @@ export function useMutation() {
     onSaved?.(result);
   }
 
-  return { busy, error, run, clearError: () => setError('') };
+  return { busy, error: error?.text, errorCode: error?.code, run, clearError: () => setError(undefined) };
 }

@@ -33,14 +33,15 @@ export function openSqlite(path: string) {
   const database = new DatabaseSync(path, { timeout: 15, enableForeignKeyConstraints: true });
   let closed = false;
   try {
-    database.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;');
     const existing = version();
+    const identity = database.prepare('PRAGMA application_id').get()?.application_id;
     if (existing !== 0 && existing !== schemaVersion) {
       throw new Error(`不支持该卡路里数据库版本（${existing}）。`);
     }
-    if (existing !== 0 && database.prepare('PRAGMA application_id').get()?.application_id !== applicationId) {
-      throw new Error('无法识别卡路里记录数据库。');
+    if (identity !== applicationId && (existing !== 0 || identity !== 0)) {
+      throw new TrackerError('无法使用当前卡路里数据库。请从可用的数据库备份恢复。', undefined, 'STORAGE_FAILURE');
     }
+    database.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;');
   } catch (error) {
     database.close();
     throw error;

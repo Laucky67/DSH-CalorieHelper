@@ -66,6 +66,11 @@ try {
     }
     await click('卡路里记录');
   }
+  const selectFood = async (meal, name) => {
+    await click(`添加${meal}记录`);
+    const id = await until(() => page(`[...document.querySelectorAll('.cal-diet-form select option')].find(el=>el.textContent===${JSON.stringify(name)})?.value`), 'existing food option');
+    await value('.cal-diet-form select', id);
+  };
   if (!desktopPort) await invoke('Page.navigate', { url: process.env.CALORIE_SMOKE_BOOT_URL });
   await openPlugin();
   await until(() => page(`document.querySelector('.cal-daily input[type=date]')?.value`), 'date and calorie panel');
@@ -77,7 +82,12 @@ try {
     assert.equal(historical.items[0].id, 'meal-01');
     assert.equal(historical.totalKcal, 187.5);
     assert.equal(Math.round(historical.maintenanceKcal), 2275);
-    console.log('Passed: Windows DSH Desktop restart, migrated historical record and profile');
+    await selectFood('零嘴', '浏览器烟测饭团');
+    await value('.cal-diet-form input[name=amount]', '4');
+    await click('保存记录');
+    await until(() => page(`!document.querySelector('.cal-diet-form')`), 'retry after desktop restart completed');
+    assert.equal(await page(`[...document.querySelectorAll('[data-meal=snack] .cal-food-name strong')].filter(el=>el.textContent==='浏览器烟测饭团').length`), 1);
+    console.log('Passed: Windows DSH Desktop restart, migrated history and profile, retry after full restart');
   } else {
   await click('添加早餐记录');
   await click('新增食物');
@@ -101,11 +111,6 @@ try {
   if (!desktopPort) {
     await until(() => page(`document.querySelector('[data-meal=snack]').innerText.includes('外部记餐验证')`), 'external write refresh');
   }
-  const selectFood = async (meal, name) => {
-    await click(`添加${meal}记录`);
-    const id = await until(() => page(`[...document.querySelectorAll('.cal-diet-form select option')].find(el=>el.textContent===${JSON.stringify(name)})?.value`), 'existing food option');
-    await value('.cal-diet-form select', id);
-  };
   await page(`(() => {const original = fetch; window.fetch = async (...args) => {
     const response = await original(...args);
     if (response.ok && args[1]?.body && JSON.parse(args[1].body).action === 'diet_create') throw new TypeError('test: response lost');
@@ -146,6 +151,18 @@ try {
   await page('window.calorieTestRelease()');
   await until(() => page(`document.querySelector('[data-meal=dinner]').innerText.includes('130 千卡')`), 'old response processed');
   assert.equal(await page(`document.querySelector('[data-meal=breakfast] .cal-diet-form input[name=amount]').value`), '3');
+  if (desktopPort) {
+    await page(`(() => {const original = fetch; window.fetch = async (...args) => {
+      const response = await original(...args);
+      if (response.ok && args[1]?.body && JSON.parse(args[1].body).action === 'diet_create') throw new TypeError('test: response lost');
+      return response;
+    };})()`);
+    await selectFood('零嘴', '浏览器烟测饭团');
+    await value('.cal-diet-form input[name=amount]', '4');
+    await click('保存记录');
+    await until(() => page(`document.querySelector('.cal-diet-form').innerText.includes('暂时无法确认')`), 'ambiguous write before desktop restart');
+    await delay(1200);
+  }
   console.log(`Passed: DSH sidebar, meal and food editors, ${desktopPort ? 'external write' : 'external refresh'}, lost response after reload, intentional repeat and late response preserves next draft`);
   }
 } finally {

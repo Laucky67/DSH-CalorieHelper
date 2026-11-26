@@ -24,10 +24,12 @@ export function DietForm({ date, meal, entry, revision, openFoodEditor, onSaved,
   const [unit, setUnit] = useState(entry?.amount.unit ?? '');
   const [search, setSearch] = useState('');
   const unitOptionsId = useId();
+  const unitErrorId = useId();
   const load = useCallback((signal: AbortSignal) => request('food_search', { query: search.trim() || undefined, limit: 50 }, signal), [revision, search]);
   const loadSelected = useCallback((signal: AbortSignal) => foodId ? request('food_search', { id: foodId }, signal) : Promise.resolve([]), [revision, foodId]);
   const foods = useResource(load);
-  const { busy, error, run } = useMutation();
+  const { busy, error, errorCode, run, clearError } = useMutation();
+  const unitError = errorCode === 'INVALID_UNIT';
   const selected = useResource(loadSelected);
   const chosen = foods.data?.find((food) => food.id === foodId) ?? selected.data?.[0];
 
@@ -83,7 +85,11 @@ export function DietForm({ date, meal, entry, revision, openFoodEditor, onSaved,
         <input type="number" name="amount" min={amountMin} max={amountMax} step="any" required defaultValue={entry?.amount.value ?? 1} />
       </label>
       <label className="cal-field">单位
-        <input required maxLength={24} list={unitOptionsId} value={unit} onChange={(event) => setUnit(event.target.value)} placeholder="g、碗、个" />
+        <input required maxLength={24} list={unitOptionsId} value={unit} aria-invalid={unitError || undefined}
+          aria-describedby={unitError ? unitErrorId : undefined} onChange={(event) => {
+            setUnit(event.target.value);
+            if (unitError) clearError();
+          }} placeholder="g、碗、个" />
         <datalist id={unitOptionsId}>
           {chosen && <option value={chosen.nutrition.per.unit} />}
           {chosen?.portions?.map((portion) => <option key={portion.unit} value={portion.unit} />)}
@@ -91,7 +97,7 @@ export function DietForm({ date, meal, entry, revision, openFoodEditor, onSaved,
       </label>
     </div>
     </fieldset>
-    {error && <ErrorNotice text={error} />}
+    {error && <ErrorNotice text={error} id={unitError ? unitErrorId : undefined} />}
     <div className="cal-actions">
       <button className="cal-button" type="button" onClick={onCancel} disabled={busy}>取消</button>
       <button className="cal-button cal-primary" type="submit" disabled={busy || !chosen}>{busy ? '正在保存…' : '保存记录'}</button>
