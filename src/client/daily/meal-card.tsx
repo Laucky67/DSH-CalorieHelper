@@ -45,7 +45,10 @@ export function MealCard({ meal, items, onAdd, onEdit, onRemoved, openFoodEditor
           </div>
           <div className="cal-row-actions">
             <button className="cal-button cal-small" type="button" onClick={() => onEdit(entry)}>修改记录</button>
-            <button className="cal-button cal-small" type="button" onClick={() => setPendingDelete(entry.id)}>删除</button>
+            <button className="cal-button cal-small" type="button" disabled={remove.busy} onClick={() => {
+              remove.clearError();
+              setPendingDelete(entry.id);
+            }}>删除</button>
           </div>
         </div>
         {pendingDelete === entry.id && <div className="cal-delete-prompt">

@@ -7,8 +7,10 @@ import { ErrorNotice, Loading } from '../feedback.tsx';
 import { activityLabels, fieldText, optionalNumber } from '../presentation.ts';
 import { useMutation, useResource } from '../requests.ts';
 
+const browserTimeZone = () => new Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export function ProfilePage({ onSaved }: { onSaved: () => void }) {
-  const load = useCallback((signal: AbortSignal) => request('profile_get', {}, signal), []);
+  const load = useCallback((signal: AbortSignal) => request('profile_get', { timeZone: browserTimeZone() }, signal), []);
   const resource = useResource(load);
 
   return <section className="cal-card cal-editor">
@@ -32,6 +34,7 @@ function ProfileForm({ profile, onSaved }: { profile: Profile; onSaved: () => vo
     const activity = fieldText(form, 'activity');
     void run(async () => {
       await request('profile_save', {
+        timeZone: browserTimeZone(),
         birthDate: fieldText(form, 'birthDate') || undefined,
         sex: sex === 'female' || sex === 'male' ? sex : undefined,
         heightCm: optionalNumber(form, 'heightCm'),

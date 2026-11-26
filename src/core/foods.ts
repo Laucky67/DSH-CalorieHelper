@@ -54,7 +54,12 @@ export function editFood(state: TrackerState, { id, changes }: ToolInput<'food_u
   const food = { ...original, ...changes };
   checkFood(state, food);
   for (const entry of state.entries) {
-    if (entry.foodId === id) nutritionFor(food, entry.amount);
+    if (entry.foodId !== id) continue;
+    try { nutritionFor(food, entry.amount); }
+    catch (error) {
+      if (!(error instanceof TrackerError)) throw error;
+      throw new TrackerError(`已有饮食记录使用「${entry.amount.unit}」，请保留能计算热量的计量基准或换算。`);
+    }
   }
   state.foods[state.foods.indexOf(original)] = food;
   return food;

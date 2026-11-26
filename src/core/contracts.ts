@@ -33,6 +33,10 @@ export const profileSchema = z.strictObject({
   weightKg: z.number().positive().optional(),
   activity: z.enum(activityLevels).optional(),
 });
+const timeZone = z.string().refine((zone) => {
+  try { new Intl.DateTimeFormat('en', { timeZone: zone }); return true; }
+  catch { return false; }
+}).optional();
 
 export const toolSchemas = {
   food_search: z.union([z.strictObject({ id }), z.strictObject({ query: text.optional() })]),
@@ -52,8 +56,8 @@ export const toolSchemas = {
 export const clientSchemas = {
   ...toolSchemas,
   daily_summary: z.strictObject({ date: dateSchema }),
-  profile_get: z.strictObject({}),
-  profile_save: profileSchema,
+  profile_get: z.strictObject({ timeZone }),
+  profile_save: profileSchema.extend({ timeZone }),
 };
 
 export type Meal = z.infer<typeof mealSchema>;

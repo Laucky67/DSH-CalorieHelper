@@ -10,7 +10,7 @@ import { createClientRoute } from '../src/host/route.ts';
 import { registerTools } from '../src/host/tools.ts';
 import { memoryStorage } from './support.ts';
 
-test('通过实际 DSH 工具派发写入批次，页面接口可读取同一份清单', async (t) => {
+test('通过实际 DSH 工具批量记餐，页面接口可读取同一份饮食清单', async (t) => {
   const ctx = new Context();
   t.after(() => ctx.fiber.dispose());
   await ctx.plugin(SystemPrompt);
@@ -52,4 +52,21 @@ test('通过实际 DSH 工具派发写入批次，页面接口可读取同一份
   assert.match(JSON.stringify(invalid.content), /第 2 项/);
   assert.deepEqual((await invoke('diet_query', { date, meal: 'dinner' })).value, { items: [], totalKcal: 0 });
   assert.deepEqual((await invoke('food_search', { query: '白粥' })).value, []);
+
+  const invalidAmount = await invoke('diet_create', { date, meal: 'snack', items: [
+    { newFood: { ...rice, name: '馒头' }, amount: { value: 100, unit: 'g' } },
+    { newFood: { ...rice, name: '白菜' }, amount: { value: 0, unit: 'g' } },
+  ] });
+  assert.equal(invalidAmount.isError, true);
+  assert.match(JSON.stringify(invalidAmount.content), /第 2 项.*食用量.*大于 0/);
+
+  const pageError = await page(new Request('https://dsh.example/api/calorie-helper', {
+    method: 'POST', body: JSON.stringify({ action: 'diet_create', input: { date, meal: 'dinner', items: [
+      { newFood: { ...rice, name: '汤' }, amount: { value: 1, unit: '碗' } },
+    ] } }),
+  }));
+  assert.equal(pageError.status, 400);
+  const failure = await pageError.json();
+  assert.match(failure.error, /补充份量换算/);
+  assert.doesNotMatch(failure.error, /第 1 项/);
 });

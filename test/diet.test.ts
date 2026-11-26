@@ -14,7 +14,7 @@ const burger = {
   nutrition: { per: { value: 1, unit: '个' }, values: { energyKcal: 500 } },
 };
 
-test('一批同时写入已有食物和新食物，并按实际食用量查询营养', async () => {
+test('批量记餐同时写入已有食物和新食物，并按食用量查询营养', async () => {
   const storage = memoryStorage();
   const tracker = createTracker(storage);
   const saved = await tracker.food_create(rice);
@@ -35,7 +35,7 @@ test('一批同时写入已有食物和新食物，并按实际食用量查询�
   assert.equal((await reopened.food_search({ query: '鸡腿堡' })).length, 1);
 });
 
-test('批内存在无法计算热量的食用量时，食物和记录均不写入', async () => {
+test('批量记餐包含无法计算摄入热量的食用量时，食物和记录均不写入', async () => {
   const tracker = createTracker(memoryStorage());
   await assert.rejects(tracker.diet_create({ date, meal: 'lunch', items: [
     { newFood: rice, amount: { value: 1, unit: '碗' } },
@@ -45,7 +45,7 @@ test('批内存在无法计算热量的食用量时，食物和记录均不写�
   assert.deepEqual(await tracker.diet_query({ date }), { items: [], totalKcal: 0 });
 });
 
-test('记录可更正日期和餐别，食物修订即时可见且有引用时不能删除', async () => {
+test('饮食记录可更正日期和餐别，食物资料即时反映在饮食清单', async () => {
   const tracker = createTracker(memoryStorage());
   const food = await tracker.food_create(rice);
   const [entry] = await tracker.diet_create({ date, meal: 'dinner', items: [

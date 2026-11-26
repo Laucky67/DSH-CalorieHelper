@@ -40,10 +40,7 @@ export const toolParameters: Record<ToolName, ParameterSchemaSpec> = {
     meal: required(meal),
     items: required({
       type: 'array',
-      items: { oneOf: [
-        object({ foodId: id, amount: required(quantity) }),
-        object({ newFood: required(newFood), amount: required(quantity) }),
-      ] },
+      items: object({ foodId: string, newFood, amount: required(quantity) }),
     }),
   },
   diet_query: { id: string, date, meal },

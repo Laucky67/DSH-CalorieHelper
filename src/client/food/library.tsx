@@ -41,7 +41,10 @@ export function FoodLibrary({ openFoodEditor, revision }: { openFoodEditor: Open
           </div>
           <div className="cal-row-actions">
             <EditButton label={`编辑${food.name}`} edit={() => openFoodEditor(food.id)} />
-            <button className="cal-button cal-small" type="button" onClick={() => setPendingDelete(food)}>删除</button>
+            <button className="cal-button cal-small" type="button" disabled={remove.busy} onClick={() => {
+              remove.clearError();
+              setPendingDelete(food);
+            }}>删除</button>
           </div>
         </div>
         {pendingDelete?.id === food.id && <div className="cal-delete-prompt">

@@ -25,7 +25,7 @@ export function addEntries(state: TrackerState, { date, meal, items }: ToolInput
       state.entries.push(entry);
       return result;
     } catch (error) {
-      if (error instanceof TrackerError) throw new TrackerError(`第 ${index + 1} 项：${error.message}`);
+      if (error instanceof TrackerError) throw new TrackerError(error.detail, index + 1);
       throw error;
     }
   });

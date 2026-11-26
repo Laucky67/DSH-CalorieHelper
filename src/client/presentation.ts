@@ -9,9 +9,11 @@ export const activityLabels: Record<NonNullable<Profile['activity']>, string> = 
 };
 
 const energyNumber = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 });
+const smallEnergyNumber = new Intl.NumberFormat('zh-CN', { maximumSignificantDigits: 2 });
 export function energyText(value: number): string {
-  const rounded = Math.round(value);
-  return rounded < 0 ? `−${energyNumber.format(-rounded)}` : energyNumber.format(Math.abs(rounded));
+  const magnitude = Math.abs(value);
+  const format = magnitude > 0 && magnitude < 0.5 ? smallEnergyNumber : energyNumber;
+  return `${value < 0 ? '−' : ''}${format.format(magnitude)}`;
 }
 
 export function fieldText(form: FormData, name: string): string {

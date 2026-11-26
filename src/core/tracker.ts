@@ -1,5 +1,5 @@
 import { localDate } from './calendar.ts';
-import { clientSchemas, foodSchema, profileSchema, toolSchemas } from './contracts.ts';
+import { clientSchemas, foodSchema, toolSchemas } from './contracts.ts';
 import { addEntries, deleteEntry, editEntry, queryEntries } from './diets.ts';
 import { TrackerError, validated } from './errors.ts';
 import { addFood, deleteFood, editFood, searchFoods } from './foods.ts';
@@ -7,7 +7,7 @@ import { profileOn, summarize } from './profiles.ts';
 import { openState } from './state.ts';
 import type { TrackerStorage } from './state.ts';
 
-export function createTracker(storage: TrackerStorage, today = () => localDate()) {
+export function createTracker(storage: TrackerStorage, today = (timeZone?: string) => localDate(new Date(), timeZone)) {
   const state = openState(storage);
 
   return {
@@ -47,12 +47,13 @@ export function createTracker(storage: TrackerStorage, today = () => localDate()
       const { date } = validated(clientSchemas.daily_summary, input, '请选择有效的日期。');
       return state.read((snapshot) => summarize(snapshot, date));
     },
-    async profile_get() {
-      return state.read((snapshot) => profileOn(snapshot, today()));
+    async profile_get(input: unknown = {}) {
+      const { timeZone } = validated(clientSchemas.profile_get, input, '请检查设备时区后重试。');
+      return state.read((snapshot) => profileOn(snapshot, today(timeZone)));
     },
     async profile_save(input: unknown) {
-      const profile = validated(profileSchema, input, '请检查出生日期、性别、身高、体重和活动等级。');
-      const effectiveDate = today();
+      const { timeZone, ...profile } = validated(clientSchemas.profile_save, input, '请检查个人资料和设备时区。');
+      const effectiveDate = today(timeZone);
       if (profile.birthDate && profile.birthDate > effectiveDate) throw new TrackerError('出生日期应为今天或更早。');
       return state.write((draft) => {
         draft.profiles.push({ effectiveDate, profile });

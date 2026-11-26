@@ -15,7 +15,7 @@ export function createClientRoute(tracker: Tracker) {
       const result = await tracker[parsed.data.action](parsed.data.input);
       return Response.json({ result }, { headers });
     } catch (error) {
-      if (error instanceof TrackerError) return Response.json({ error: error.message }, { status: 400, headers });
+      if (error instanceof TrackerError) return Response.json({ error: error.detail }, { status: 400, headers });
       console.error('calorie-helper request failed', error);
       return Response.json({ error: '操作未完成，请重试。' }, { status: 500, headers });
     }
