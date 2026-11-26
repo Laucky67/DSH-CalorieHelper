@@ -1,84 +1,49 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
-import { activityLevels } from '../../core/choices.ts';
-import { heightMax, profileMeasureMin, weightMax } from '../../core/contracts.ts';
-import type { Profile } from '../../core/contracts.ts';
-import { request } from '../api.ts';
-import { ErrorNotice, Loading } from '../feedback.tsx';
-import { activityLabels, fieldText, optionalNumber } from '../presentation.ts';
-import { useMutation, useResource } from '../requests.ts';
+import { useCallback, useEffect, useState } from 'react';
+import { confirmDiscard } from '../dirty.ts';
+import { useResource } from '../requests.ts';
+import { Banner } from '../ui.tsx';
+import { loadProfile } from './draft.ts';
+import type { ProfileRecord } from './draft.ts';
+import { ProfileForm } from './profile-form.tsx';
 
-const browserTimeZone = () => new Intl.DateTimeFormat().resolvedOptions().timeZone;
-type ProfileView = Profile & { version: number | null };
+type Props = {
+  onSaved: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+};
 
-export function ProfilePage({ onSaved, onDirty }: { onSaved: () => void; onDirty: () => void }) {
-  const load = useCallback((signal: AbortSignal) => request('profile_get', { timeZone: browserTimeZone() }, signal), []);
-  const resource = useResource(load);
+export function ProfilePage({ onSaved, onDirtyChange }: Props) {
+  const load = useCallback((signal: AbortSignal) => loadProfile(signal), []);
+  const { data, error, refresh } = useResource(load);
+  const [saved, setSaved] = useState<ProfileRecord>();
+  const [justSaved, setJustSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const report = useCallback((value: boolean) => { setDirty(value); onDirtyChange(value); }, [onDirtyChange]);
+  const profile = saved ?? data;
 
-  return <section className="cal-card cal-editor">
-    <div className="cal-section-heading"><h2>个人资料</h2></div>
-    {resource.error
-      ? <ErrorNotice text={resource.error} retry={resource.refresh} />
-      : resource.data
-        ? <ProfileForm profile={resource.data} onSaved={onSaved} onDirty={onDirty} />
-        : <Loading />}
-  </section>;
-}
-
-function ProfileForm({ profile, onSaved, onDirty }: { profile: ProfileView; onSaved: () => void; onDirty: () => void }) {
-  const { busy, error, run } = useMutation();
-  const [saved, setSaved] = useState(false);
-  const [version, setVersion] = useState(profile.version);
-  const mounted = useRef(false);
   useEffect(() => {
-    mounted.current = true;
-    return () => { mounted.current = false; };
-  }, []);
+    if (!justSaved) return;
+    const timer = window.setTimeout(() => setJustSaved(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [justSaved]);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const sex = fieldText(form, 'sex');
-    const activity = fieldText(form, 'activity');
-    void run('profile_save', {
-      timeZone: browserTimeZone(), expectedVersion: version,
-      birthDate: fieldText(form, 'birthDate') || undefined,
-      sex: sex === 'female' || sex === 'male' ? sex : undefined,
-      heightCm: optionalNumber(form, 'heightCm'),
-      weightKg: optionalNumber(form, 'weightKg'),
-      activity: activityLevels.find((level) => level === activity),
-    }, (result) => {
-      if (!mounted.current) return;
-      setVersion(result.version);
-      setSaved(true);
-      onSaved();
-    });
-  }
+  const reload = () => {
+    if (!confirmDiscard(dirty)) return;
+    setSaved(undefined);
+    refresh();
+  };
+  const handleSaved = (next: ProfileRecord) => {
+    setSaved(next);
+    setJustSaved(true);
+    onSaved();
+  };
 
-  return <form className="cal-form" onChange={() => { setSaved(false); onDirty(); }} onSubmit={submit}>
-    <fieldset className="cal-form-fields" disabled={busy}>
-    <div className="cal-form-grid">
-      <label className="cal-field">出生日期<input name="birthDate" type="date" defaultValue={profile.birthDate} /></label>
-      <label className="cal-field">性别
-        <select name="sex" defaultValue={profile.sex ?? ''}>
-          <option value="">请选择</option><option value="female">女</option><option value="male">男</option>
-        </select>
-      </label>
-      <label className="cal-field">身高（厘米）<input name="heightCm" type="number" min={profileMeasureMin} max={heightMax} step="any" defaultValue={profile.heightCm} /></label>
-      <label className="cal-field">体重（千克）<input name="weightKg" type="number" min={profileMeasureMin} max={weightMax} step="any" defaultValue={profile.weightKg} /></label>
-    </div>
-    <label className="cal-field">日常活动等级
-      <select name="activity" defaultValue={profile.activity ?? ''}>
-        <option value="">请选择</option>
-        {activityLevels.map((level) => <option key={level} value={level}>{activityLabels[level]}</option>)}
-      </select>
-    </label>
-    <p className="cal-secondary">可参考平时的工作、通勤、家务和运动。</p>
-    </fieldset>
-    {error && <ErrorNotice text={error} />}
-    <div className="cal-actions">
-      {saved && <span role="status">已保存</span>}
-      <button className="cal-button cal-primary" type="submit" disabled={busy}>{busy ? '正在保存…' : '保存资料'}</button>
-    </div>
-  </form>;
+  return <div className="cal-profile">
+    {error && !profile && <Banner onRetry={refresh}>{error}</Banner>}
+    {!profile && !error && <div className="cal-card"><div className="cal-skeleton is-tall" aria-busy="true" /></div>}
+    {profile && <ProfileForm
+      key={`${profile.version ?? 'new'}:${saved ? 'saved' : 'loaded'}`}
+      profile={profile} justSaved={justSaved} onSaved={handleSaved} onEdit={() => setJustSaved(false)}
+      onReload={reload} reportDirty={report}
+    />}
+  </div>;
 }

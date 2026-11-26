@@ -1,0 +1,96 @@
+/* 食物库与食物编辑 */
+.cal .cal-foods { display: flex; flex-direction: column; gap: 16px; }
+.cal .cal-toolbar { display: flex; align-items: center; gap: 10px; }
+.cal .cal-toolbar .cal-search { flex: 1; max-width: 440px; }
+.cal .cal-toolbar .cal-btn { margin-left: auto; }
+
+.cal .cal-food-table {
+  padding: 6px;
+  border: 1px solid var(--cal-border);
+  border-radius: 16px;
+  background: var(--cal-surface);
+  box-shadow: var(--cal-shadow);
+}
+.cal .cal-food-head,
+.cal .cal-food-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.4fr) minmax(92px, 1fr) repeat(4, minmax(68px, 0.8fr)) 16px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+}
+.cal .cal-food-head { padding-top: 8px; padding-bottom: 6px; color: var(--cal-text-3); font-size: 12px; font-weight: 500; }
+.cal .cal-food-head > span:nth-child(n + 2) { text-align: right; }
+.cal .cal-food-table [role='listitem'] { position: relative; }
+.cal .cal-food-table [role='listitem'] + [role='listitem']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 14px;
+  right: 14px;
+  border-top: 1px solid var(--cal-border);
+}
+.cal .cal-food-table [role='listitem']:hover::before,
+.cal .cal-food-table [role='listitem']:hover + [role='listitem']::before { border-color: transparent; }
+.cal .cal-food-row {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s;
+}
+.cal .cal-food-row:hover { background: var(--cal-surface-2); }
+.cal .cal-food-cell-name { min-width: 0; display: flex; flex-direction: column; }
+.cal .cal-food-cell-name strong { overflow: hidden; font-size: 14.5px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.cal .cal-food-cell-name .cal-muted { font-size: 12.5px; }
+.cal .cal-food-cell-energy { text-align: right; }
+.cal .cal-col-nutrient { color: var(--cal-text-2); font-size: 13px; text-align: right; white-space: nowrap; }
+.cal .cal-food-cell-brief { display: none; }
+.cal .cal-row-chevron { display: flex; color: var(--cal-text-3); transition: transform 0.15s, color 0.15s; }
+.cal .cal-food-row:hover .cal-row-chevron { color: var(--cal-text-2); transform: translateX(2px); }
+
+@container cal (max-width: 780px) {
+  .cal .cal-food-head { display: none; }
+  .cal .cal-food-row { grid-template-columns: minmax(0, 1fr) auto 16px; row-gap: 2px; }
+  .cal .cal-food-row .cal-col-nutrient { display: none; }
+  .cal .cal-food-cell-brief { display: block; grid-column: 1 / -1; grid-row: 2; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+}
+@container cal (max-width: 480px) {
+  .cal .cal-toolbar { flex-wrap: wrap; }
+  .cal .cal-toolbar .cal-search { flex-basis: 100%; max-width: none; }
+  .cal .cal-toolbar .cal-btn { width: 100%; }
+}
+
+.cal .cal-pager { display: flex; align-items: center; justify-content: center; gap: 12px; }
+
+/* 食物编辑 */
+.cal .cal-food-form { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cal .cal-input-lg { height: 44px !important; font-size: 16px !important; font-weight: 500; }
+.cal .cal-group { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.cal .cal-group legend { margin-bottom: 12px; padding: 0; color: var(--cal-text-2); font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; }
+.cal .cal-basis { display: flex; align-items: center; gap: 8px; }
+.cal .cal-basis-word { color: var(--cal-text-2); }
+.cal .cal-basis-value { width: 96px !important; font-variant-numeric: tabular-nums; }
+.cal .cal-basis-unit { width: 110px !important; }
+
+.cal .cal-nutrients { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+.cal .cal-nutrient { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cal .cal-nutrient input { font-variant-numeric: tabular-nums; }
+.cal .cal-nutrient.is-energy { grid-column: 1 / -1; }
+.cal .cal-nutrient.is-energy input { height: 46px; font-size: 20px; font-weight: 650; }
+.cal .cal-nutrient.is-energy .cal-field-label::after { content: ' *'; color: var(--cal-accent); }
+
+.cal .cal-portions { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.cal .cal-portion-line {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 12px minmax(0, 1fr) minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 6px;
+}
+.cal .cal-portion-one,
+.cal .cal-portion-eq { color: var(--cal-text-3); text-align: center; font-variant-numeric: tabular-nums; }
+.cal .cal-add-portion { align-self: flex-start; margin-left: -10px; }

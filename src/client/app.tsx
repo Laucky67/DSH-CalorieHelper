@@ -1,90 +1,91 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Food } from '../core/contracts.ts';
 import { DailyPage } from './daily/page.tsx';
-import { FoodEditor } from './food/editor.tsx';
-import { FoodLibrary } from './food/library.tsx';
+import { confirmDiscard } from './dirty.ts';
+import { FoodEditor } from './foods/editor.tsx';
+import type { FoodTarget } from './foods/editor.tsx';
+import { FoodsPage } from './foods/page.tsx';
 import { ProfilePage } from './profile/page.tsx';
-import { useUnsavedWarning } from './requests.ts';
-import stylesheet from './styles.css';
+import { Tabs } from './tabs.tsx';
+import type { Tab } from './tabs.tsx';
+import base from './styles/base.css';
+import daily from './styles/daily.css';
+import foods from './styles/foods.css';
+import profile from './styles/profile.css';
 
-type Page = 'daily' | 'foods' | 'profile';
-export type OpenFoodEditor = (foodId?: string, onSaved?: (food: Food) => void) => void;
-const pages: ReadonlyArray<{ id: Page; label: string }> = [
-  { id: 'daily', label: '饮食记录' }, { id: 'foods', label: '食物库' }, { id: 'profile', label: '个人资料' },
-];
-type Editor = { foodId?: string; onSaved?: (food: Food) => void; trigger: Element | null };
+const stylesheet = [base, daily, foods, profile].join('\n');
+
+type Editor = { key: number; target: FoodTarget; onSaved?: (food: Food) => void; returnFocus: Element | null };
 
 export function CalorieApp() {
-  const [page, setPage] = useState<Page>('daily');
-  const [editor, setEditor] = useState<Editor>();
-  const editorRef = useRef<Editor | undefined>(undefined);
-  const [editorDirty, setEditorDirty] = useState(false);
-  const [profileDirty, setProfileDirty] = useState(false);
+  const [tab, setTab] = useState<Tab>('daily');
   const [revision, setRevision] = useState(0);
-  useUnsavedWarning(editorDirty || profileDirty);
-  const openFoodEditor: OpenFoodEditor = (foodId, onSaved) => {
-    const next = { foodId, onSaved, trigger: document.activeElement };
-    editorRef.current = next;
-    setEditorDirty(false);
-    setEditor(next);
+  const [editor, setEditor] = useState<Editor>();
+  const pageDirty = useRef(false);
+  const mainRef = useRef<HTMLElement>(null);
+  const editorKey = useRef(0);
+  const editorRef = useRef<Editor | undefined>(undefined);
+
+  const reportDirty = useCallback((dirty: boolean) => { pageDirty.current = dirty; }, []);
+  const bump = useCallback(() => setRevision((value) => value + 1), []);
+
+  const switchTab = (next: Tab) => {
+    if (next === tab || !confirmDiscard(pageDirty.current)) return;
+    pageDirty.current = false;
+    setTab(next);
   };
-  const activePage = editor ? 'foods' : page;
 
-  function closeEditor(restoreFocus: boolean) {
-    const trigger = editorRef.current?.trigger;
+  const openFood = useCallback((target: FoodTarget, onSaved?: (food: Food) => void) => {
+    editorKey.current += 1;
+    const next = { key: editorKey.current, target, onSaved, returnFocus: document.activeElement };
+    editorRef.current = next;
+    setEditor(next);
+  }, []);
+
+  const closeEditor = useCallback(() => {
+    const element = editorRef.current?.returnFocus;
     editorRef.current = undefined;
+    mainRef.current?.removeAttribute('inert');
     setEditor(undefined);
-    setEditorDirty(false);
-    if (restoreFocus && trigger instanceof HTMLElement) {
-      window.requestAnimationFrame(() => { if (trigger.isConnected) trigger.focus(); });
-    }
-  }
+    window.requestAnimationFrame(() => {
+      if (element instanceof HTMLElement && element.isConnected) element.focus();
+    });
+  }, []);
 
-  function foodSaved(food: Food) {
-    setRevision((value) => value + 1);
-    if (editor && editorRef.current === editor) {
-      editor.onSaved?.(food);
-      closeEditor(true);
-    }
-  }
+  const foodSaved = (food: Food) => {
+    const current = editorRef.current;
+    bump();
+    closeEditor();
+    current?.onSaved?.(food);
+  };
+  const foodDeleted = () => { bump(); closeEditor(); };
 
-  function visit(next: Page) {
-    if ((editorDirty || (profileDirty && page !== next)) && !window.confirm('内容还没有保存。要放弃编辑吗？')) return;
-    if (page !== next) setProfileDirty(false);
-    closeEditor(false);
-    setPage(next);
-    setRevision((value) => value + 1);
-  }
+  // 编辑面板打开时，背后的内容不可操作。
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    if (editor) main.setAttribute('inert', '');
+    else main.removeAttribute('inert');
+  }, [editor]);
 
-  return <div className="calorie-shell">
+  return <div className="cal">
     <style>{stylesheet}</style>
-    <div className="cal-container">
-      <header className="cal-header">
-        <h1>卡路里记录</h1>
-        <nav className="cal-nav" aria-label="卡路里记录">
-          {pages.map(({ id, label }) => <button
-            key={id} type="button" aria-current={id === activePage ? 'page' : undefined}
-            onClick={() => visit(id)}
-          >{label}</button>)}
-        </nav>
+    <section className="cal-frame" ref={mainRef}>
+      <header className="cal-top">
+        <Tabs value={tab} onChange={switchTab} />
       </header>
-
-      <div hidden={page !== 'daily' || Boolean(editor)}>
-        <DailyPage openFoodEditor={openFoodEditor} revision={revision} active={page === 'daily' && !editor} />
-      </div>
-      {page === 'foods' && <div hidden={Boolean(editor)}>
-        <FoodLibrary openFoodEditor={openFoodEditor} revision={revision} active={!editor} />
-      </div>}
-      {page === 'profile' && !editor && <ProfilePage onDirty={() => setProfileDirty(true)} onSaved={() => {
-        setProfileDirty(false);
-        setRevision((value) => value + 1);
-      }} />}
-      {editor && <FoodEditor
-        key={editor.foodId ?? 'new'} id={editor.foodId}
-        onSaved={foodSaved} onDirty={() => setEditorDirty(true)} onCancel={() => {
-          if (!editorDirty || window.confirm('食物资料还没有保存。要放弃编辑吗？')) closeEditor(true);
-        }}
-      />}
-    </div>
+      <main className="cal-scroll">
+        <div className="cal-page" key={tab}>
+          {tab === 'daily' && <DailyPage
+            revision={revision} onOpenFood={openFood} onOpenProfile={() => switchTab('profile')} onDirtyChange={reportDirty}
+          />}
+          {tab === 'foods' && <FoodsPage revision={revision} onOpenFood={openFood} />}
+          {tab === 'profile' && <ProfilePage onSaved={bump} onDirtyChange={reportDirty} />}
+        </div>
+      </main>
+    </section>
+    {editor && <FoodEditor
+      key={editor.key} target={editor.target} onClose={closeEditor} onSaved={foodSaved} onDeleted={foodDeleted}
+    />}
   </div>;
 }

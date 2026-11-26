@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory)] [string] $DshEntry,
-  [string] $Package = 'dist/dsh-calorie-helper-0.2.0.tgz',
+  [string] $Package = 'dist/dsh-calorie-helper-0.2.2.tgz',
   [string] $Chrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 )
 

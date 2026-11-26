@@ -1,0 +1,410 @@
+/* 主题与基础控件。所有选择器都限定在 .cal 下。 */
+.cal {
+  --cal-bg: #f6f6f3;
+  --cal-surface: #ffffff;
+  --cal-surface-2: #f0efeb;
+  --cal-track: #ecebe6;
+  --cal-border: rgba(24, 22, 18, 0.08);
+  --cal-border-strong: rgba(24, 22, 18, 0.15);
+  --cal-text: #1c1b19;
+  --cal-text-2: #5f5e58;
+  --cal-text-3: #929089;
+  --cal-primary: #1c1b19;
+  --cal-on-primary: #ffffff;
+  --cal-accent: #e0602c;
+  --cal-accent-soft: rgba(235, 104, 52, 0.12);
+  --cal-accent-ring: rgba(235, 104, 52, 0.28);
+  --cal-danger: #c93b3b;
+  --cal-danger-soft: rgba(214, 64, 64, 0.1);
+  --cal-good: #18875a;
+  --cal-good-soft: rgba(27, 175, 122, 0.12);
+  --cal-shadow: 0 1px 2px rgba(24, 22, 18, 0.04), 0 6px 20px -8px rgba(24, 22, 18, 0.08);
+  --cal-shadow-lift: 0 1px 2px rgba(24, 22, 18, 0.06), 0 2px 6px rgba(24, 22, 18, 0.06);
+  --cal-scrim: rgba(20, 19, 16, 0.32);
+  --meal-breakfast: #eda100;
+  --meal-lunch: #1baf7a;
+  --meal-dinner: #2a78d6;
+  --meal-snack: #e87ba4;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--cal-bg);
+  color: var(--cal-text);
+  font-size: 14px;
+  line-height: 1.5;
+  color-scheme: light;
+  container: cal / inline-size;
+  -webkit-font-smoothing: antialiased;
+}
+
+:is([data-theme='dark'], .dark) .cal {
+  --cal-bg: #151514;
+  --cal-surface: #1e1e1c;
+  --cal-surface-2: #2a2a27;
+  --cal-track: #2e2e2b;
+  --cal-border: rgba(255, 255, 255, 0.07);
+  --cal-border-strong: rgba(255, 255, 255, 0.14);
+  --cal-text: #f1f0ec;
+  --cal-text-2: #b5b4ad;
+  --cal-text-3: #7f7e78;
+  --cal-primary: #f1f0ec;
+  --cal-on-primary: #151514;
+  --cal-accent: #f08050;
+  --cal-accent-soft: rgba(240, 128, 80, 0.15);
+  --cal-accent-ring: rgba(240, 128, 80, 0.35);
+  --cal-danger: #f07272;
+  --cal-danger-soft: rgba(240, 114, 114, 0.13);
+  --cal-good: #52c792;
+  --cal-good-soft: rgba(82, 199, 146, 0.13);
+  --cal-shadow: 0 0 0 transparent;
+  --cal-shadow-lift: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --cal-scrim: rgba(0, 0, 0, 0.5);
+  --meal-breakfast: #c98500;
+  --meal-lunch: #199e70;
+  --meal-dinner: #3987e5;
+  --meal-snack: #d55181;
+  color-scheme: dark;
+}
+
+.cal *,
+.cal *::before,
+.cal *::after { box-sizing: border-box; }
+
+.cal [data-meal-color='breakfast'] { --meal: var(--meal-breakfast); }
+.cal [data-meal-color='lunch'] { --meal: var(--meal-lunch); }
+.cal [data-meal-color='dinner'] { --meal: var(--meal-dinner); }
+.cal [data-meal-color='snack'] { --meal: var(--meal-snack); }
+
+/* 框架 */
+.cal .cal-frame { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cal .cal-top {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: 14px 24px 10px;
+  border-bottom: 1px solid var(--cal-border);
+  background: var(--cal-bg);
+}
+.cal .cal-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.cal .cal-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 22px 28px 56px;
+  animation: cal-fade 0.18s ease-out;
+}
+
+/* 页面切换 */
+.cal .cal-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--cal-surface-2);
+}
+.cal .cal-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--cal-text-2);
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.cal .cal-tab:hover { color: var(--cal-text); }
+.cal .cal-tab.is-on {
+  background: var(--cal-surface);
+  color: var(--cal-text);
+  box-shadow: var(--cal-shadow-lift);
+}
+.cal .cal-tab.is-on svg { color: var(--cal-accent); }
+
+/* 焦点 */
+.cal :focus-visible { outline: 2px solid var(--cal-accent); outline-offset: 2px; }
+.cal input:focus-visible { outline: none; }
+
+/* 按钮 */
+.cal .cal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--cal-border-strong);
+  border-radius: 10px;
+  background: var(--cal-surface);
+  color: var(--cal-text);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.06s;
+}
+.cal .cal-btn:hover { background: var(--cal-surface-2); }
+.cal .cal-btn:active:not(:disabled) { transform: translateY(0.5px); }
+.cal .cal-btn:disabled { opacity: 0.45; cursor: default; }
+.cal .cal-btn[aria-busy='true'] { opacity: 0.65; cursor: progress; }
+.cal .cal-btn.is-primary { border-color: transparent; background: var(--cal-primary); color: var(--cal-on-primary); }
+.cal .cal-btn.is-primary:hover:not(:disabled) { opacity: 0.88; }
+.cal .cal-btn.is-quiet { border-color: transparent; background: transparent; color: var(--cal-text-2); }
+.cal .cal-btn.is-quiet:hover:not(:disabled) { background: var(--cal-surface-2); color: var(--cal-text); }
+.cal .cal-btn.is-ghost { border-color: transparent; background: transparent; color: var(--cal-accent); }
+.cal .cal-btn.is-ghost:hover { background: var(--cal-accent-soft); }
+.cal .cal-btn.is-danger-quiet { border-color: transparent; background: transparent; color: var(--cal-danger); }
+.cal .cal-btn.is-danger-quiet:hover:not(:disabled) { background: var(--cal-danger-soft); }
+.cal .cal-btn.is-small { height: 30px; padding: 0 10px; font-size: 13px; border-radius: 8px; }
+
+.cal .cal-icon-btn {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cal-text-3);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.cal .cal-icon-btn:hover:not(:disabled) { background: var(--cal-surface-2); color: var(--cal-text); }
+.cal .cal-icon-btn.is-danger:hover:not(:disabled) { background: var(--cal-danger-soft); color: var(--cal-danger); }
+.cal .cal-icon-btn:disabled { opacity: 0.4; cursor: default; }
+
+.cal .cal-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cal-accent);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.cal .cal-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.cal .cal-chip {
+  height: 28px;
+  padding: 0 11px;
+  border: 1px solid var(--cal-border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cal-text-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.cal .cal-chip:hover { color: var(--cal-text); border-color: var(--cal-text-3); }
+.cal .cal-chip.is-on { border-color: var(--cal-accent); background: var(--cal-accent-soft); color: var(--cal-accent); font-weight: 500; }
+
+/* 输入 */
+.cal :where(input:not([type='radio'], [type='checkbox'])) {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--cal-border-strong);
+  border-radius: 10px;
+  background: var(--cal-surface);
+  color: var(--cal-text);
+  font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cal input::placeholder { color: var(--cal-text-3); }
+.cal :where(input:not([type='radio'], [type='checkbox'])):hover { border-color: var(--cal-text-3); }
+.cal :where(input:not([type='radio'], [type='checkbox'])):focus { outline: none; border-color: var(--cal-accent); box-shadow: 0 0 0 3px var(--cal-accent-ring); }
+.cal input[aria-invalid='true'] { border-color: var(--cal-danger) !important; }
+.cal input[aria-invalid='true']:focus { box-shadow: 0 0 0 3px var(--cal-danger-soft) !important; }
+.cal input[type='search'] { appearance: none; }
+.cal input[type='search']::-webkit-search-cancel-button { appearance: none; }
+.cal input[type='date']::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: pointer; }
+
+.cal .cal-input-wrap { position: relative; display: flex; align-items: center; }
+.cal .cal-input-wrap input { padding-right: 52px; }
+.cal .cal-input-wrap input[type='date'] { padding-right: 12px; }
+.cal .cal-suffix {
+  position: absolute;
+  right: 12px;
+  color: var(--cal-text-3);
+  font-size: 13px;
+  pointer-events: none;
+}
+.cal .cal-input-wrap input[type='date'] + .cal-suffix { right: 40px; }
+
+.cal .cal-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cal .cal-field-label { color: var(--cal-text-2); font-size: 12.5px; font-weight: 500; }
+.cal .cal-field-error { margin: 2px 0 0; color: var(--cal-danger); font-size: 12.5px; }
+
+.cal .cal-search { position: relative; display: flex; align-items: center; min-width: 0; }
+.cal .cal-search > svg { position: absolute; left: 12px; color: var(--cal-text-3); pointer-events: none; }
+.cal .cal-search input { padding-left: 36px; }
+.cal .cal-search .cal-icon-btn { position: absolute; right: 3px; }
+.cal .cal-search:has(.cal-icon-btn) input { padding-right: 38px; }
+
+/* 分段选择 */
+.cal .cal-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--cal-surface-2);
+  max-width: 100%;
+}
+.cal .cal-segmented label { position: relative; display: inline-flex; }
+.cal .cal-segmented input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.cal .cal-segmented span {
+  padding: 5px 12px;
+  border-radius: 8px;
+  color: var(--cal-text-2);
+  font-size: 13.5px;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.cal .cal-segmented label:hover span { color: var(--cal-text); }
+.cal .cal-segmented .is-on span { background: var(--cal-surface); color: var(--cal-text); font-weight: 600; box-shadow: var(--cal-shadow-lift); }
+.cal .cal-segmented input:focus-visible + span { box-shadow: 0 0 0 2px var(--cal-accent); }
+
+/* 通用 */
+.cal .cal-card {
+  border: 1px solid var(--cal-border);
+  border-radius: 16px;
+  background: var(--cal-surface);
+  box-shadow: var(--cal-shadow);
+}
+.cal .cal-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 10px;
+  background: var(--cal-danger-soft);
+  color: var(--cal-danger);
+  animation: cal-fade 0.18s ease-out;
+}
+.cal .cal-banner > svg { flex: none; }
+.cal .cal-banner-text { flex: 1; min-width: 0; color: var(--cal-text); font-size: 13.5px; }
+.cal .cal-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cal .cal-spacer { flex: 1; }
+.cal .cal-muted { color: var(--cal-text-2); font-size: 13px; }
+.cal .cal-faint { color: var(--cal-text-3); }
+.cal .cal-num,
+.cal .cal-kcal { font-variant-numeric: tabular-nums; }
+.cal .cal-kcal { white-space: nowrap; }
+.cal .cal-kcal b { font-weight: 600; }
+.cal .cal-kcal-unit { color: var(--cal-text-3); font-size: 0.82em; font-weight: 400; }
+.cal .cal-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.cal .is-stale { opacity: 0.55; transition: opacity 0.2s; }
+
+.cal .cal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 56px 16px;
+  color: var(--cal-text-2);
+  text-align: center;
+}
+.cal .cal-empty p { margin: 0; }
+
+.cal .cal-skeleton {
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--cal-surface-2) 0%, var(--cal-track) 50%, var(--cal-surface-2) 100%);
+  background-size: 200% 100%;
+  animation: cal-shimmer 1.3s ease-in-out infinite;
+}
+.cal .cal-skeleton.is-tall { height: 260px; }
+.cal .cal-skeleton-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 侧滑面板 */
+.cal .cal-sheet-layer { position: absolute; inset: 0; z-index: 20; display: flex; justify-content: flex-end; }
+.cal .cal-sheet-backdrop { position: absolute; inset: 0; background: var(--cal-scrim); animation: cal-fade 0.2s ease-out; }
+.cal .cal-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  height: 100%;
+  border-left: 1px solid var(--cal-border);
+  background: var(--cal-surface);
+  box-shadow: -16px 0 48px -12px rgba(0, 0, 0, 0.22);
+  animation: cal-slide 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cal .cal-sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 12px 22px;
+  border-bottom: 1px solid var(--cal-border);
+}
+.cal .cal-sheet-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.cal .cal-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 22px;
+}
+.cal .cal-sheet-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 22px 16px;
+  border-top: 1px solid var(--cal-border);
+  background: var(--cal-surface);
+}
+
+@keyframes cal-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cal-slide { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cal-pop { from { transform: translateY(-4px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cal-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cal *, .cal *::before, .cal *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@container cal (max-width: 560px) {
+  .cal .cal-top { padding: 10px 12px 8px; }
+  .cal .cal-page { padding: 16px 14px 40px; }
+  .cal .cal-tab { padding: 0 11px; }
+  .cal .cal-sheet-body { padding: 18px 16px; }
+  .cal .cal-sheet-foot { padding: 12px 16px 14px; }
+  .cal .cal-sheet-head { padding-left: 16px; }
+}
+@container cal (max-width: 400px) {
+  .cal .cal-tab svg { display: none; }
+}

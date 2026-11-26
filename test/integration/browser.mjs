@@ -68,8 +68,10 @@ try {
   }
   const selectFood = async (meal, name) => {
     await click(`添加${meal}记录`);
-    const id = await until(() => page(`[...document.querySelectorAll('.cal-diet-form select option')].find(el=>el.textContent===${JSON.stringify(name)})?.value`), 'existing food option');
-    await value('.cal-diet-form select', id);
+    await until(() => page(`Boolean(document.querySelector('.cal-diet-form input[name=foodQuery]'))`), 'food search');
+    await value('.cal-diet-form input[name=foodQuery]', name);
+    await until(() => page(`(() => { const el = [...document.querySelectorAll('.cal-diet-form [role=option]')].find(el => el.dataset.foodName === ${JSON.stringify(name)}); if (!el) return false; el.click(); return true; })()`), 'existing food option');
+    await until(() => page(`document.querySelector('.cal-diet-form .cal-picked')?.dataset.foodId && Boolean(document.querySelector('.cal-diet-form input[name=amount]'))`), 'food selected');
   };
   if (!desktopPort) await invoke('Page.navigate', { url: process.env.CALORIE_SMOKE_BOOT_URL });
   await openPlugin();
@@ -98,7 +100,7 @@ try {
   await value('.cal-editor input[name=basisUnit]', '个');
   await value('.cal-editor input[name=energyKcal]', '123');
   await click('保存食物');
-  await until(() => page(`!document.querySelector('.cal-editor') && document.querySelector('.cal-diet-form select')?.value`), 'food editor return and selected food');
+  await until(() => page(`!document.querySelector('.cal-editor') && document.querySelector('.cal-diet-form .cal-picked')?.dataset.foodId`), 'food editor return and selected food');
   await value('.cal-diet-form input[name=amount]', '2');
   await click('保存记录');
   await until(() => page(`document.querySelector('[data-meal=breakfast]').innerText.includes('246 千卡')`), 'saved breakfast calories');

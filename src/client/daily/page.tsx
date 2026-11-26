@@ -1,80 +1,107 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { localDate, shiftDate } from '../../core/calendar.ts';
 import { meals } from '../../core/choices.ts';
 import type { DietItem, Meal } from '../../core/contracts.ts';
-import { request } from '../api.ts';
-import type { OpenFoodEditor } from '../app.tsx';
-import { ErrorNotice, Loading } from '../feedback.tsx';
-import { useResource, useUnsavedWarning } from '../requests.ts';
-import { DietForm } from './form.tsx';
-import { MealCard } from './meal-card.tsx';
+import { confirmDiscard } from '../dirty.ts';
+import { energyByMeal } from '../energy.ts';
+import { useMutation } from '../requests.ts';
+import { Banner } from '../ui.tsx';
+import { entryOf } from './data.ts';
+import { DateNav } from './date-nav.tsx';
+import { DietForm } from './diet-form.tsx';
+import type { OpenFood } from './diet-form.tsx';
+import { MealSection } from './meal-section.tsx';
 import { Summary } from './summary.tsx';
+import { useDailySummary, useFollowedDate } from './use-day.ts';
 
-type Draft = { key: number; meal: Meal; entry?: DietItem; dirty: boolean };
+type Props = {
+  revision: number;
+  onOpenFood: OpenFood;
+  onOpenProfile: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+};
 
-export function DailyPage({ openFoodEditor, revision, active }: { openFoodEditor: OpenFoodEditor; revision: number; active: boolean }) {
-  const [date, setDate] = useState(() => localDate());
-  const [followingToday, setFollowingToday] = useState(true);
+/** 正在编辑的草稿：添加某一餐，或修改某条记录。 */
+type Draft = { key: number; meal: Meal; item?: DietItem };
+
+export function DailyPage({ revision, onOpenFood, onOpenProfile, onDirtyChange }: Props) {
   const [draft, setDraft] = useState<Draft>();
-  const [savedDate, setSavedDate] = useState<string>();
-  useUnsavedWarning(Boolean(draft?.dirty));
+  const draftDirty = useRef(false);
   const nextKey = useRef(0);
-  const load = useCallback((signal: AbortSignal) => request('daily_summary', { date }, signal), [date, revision]);
-  const resource = useResource(load, 4000, active);
-  useEffect(() => { if (resource.data) setSavedDate(undefined); }, [resource.data]);
+  const [date, setDate] = useFollowedDate(draft === undefined);
+  const { summary, fresh, error, refresh } = useDailySummary(date, revision);
+  const [justSaved, setJustSaved] = useState(false);
+  const remove = useMutation();
 
-  useEffect(() => {
-    if (!active || !followingToday || draft) return;
-    const refreshDate = () => setDate(localDate());
-    refreshDate();
-    window.addEventListener('focus', refreshDate);
-    const timer = window.setInterval(refreshDate, 30000);
-    return () => { window.clearInterval(timer); window.removeEventListener('focus', refreshDate); };
-  }, [active, followingToday, draft]);
+  useEffect(() => { setJustSaved(false); }, [fresh]);
 
-  function discardDraft() { return !draft?.dirty || window.confirm('这条饮食记录还没有保存。要放弃编辑吗？'); }
+  const reportDirty = useCallback((dirty: boolean) => {
+    draftDirty.current = dirty;
+    onDirtyChange(dirty);
+  }, [onDirtyChange]);
 
-  function startDraft(meal: Meal, entry?: DietItem) {
-    if (!discardDraft()) return;
-    setDraft({ key: ++nextKey.current, meal, entry, dirty: false });
-  }
+  const leaveDraft = () => confirmDiscard(draft !== undefined && draftDirty.current);
 
-  function changeDate(next: string) {
-    if (!next || date === next || !discardDraft()) return;
+  const changeDate = (next: string) => {
+    if (next === date || !leaveDraft()) return;
     setDraft(undefined);
-    setSavedDate(undefined);
-    setFollowingToday(next === localDate());
     setDate(next);
-  }
+  };
+
+  const startDraft = (meal: Meal, item?: DietItem) => {
+    if (draft && !draft.item && !item && draft.meal === meal) return;
+    if (!leaveDraft()) return;
+    nextKey.current += 1;
+    remove.clearError();
+    setDraft({ key: nextKey.current, meal, item });
+  };
+
+  const cancelDraft = () => { if (leaveDraft()) setDraft(undefined); };
+
+  const draftSaved = (key: number) => {
+    setDraft((current) => current?.key === key ? undefined : current);
+    setJustSaved(true);
+    refresh();
+  };
+
+  const deleteItem = (item: DietItem) => {
+    if (!window.confirm(`删除这条「${item.foodName}」记录？`)) return;
+    void remove.run('diet_delete', { id: item.id, expected: entryOf(item) }, () => refresh());
+  };
+
+  const openItemFood = (item: DietItem) => onOpenFood({ id: item.foodId });
+
+  const items = summary?.items ?? [];
+  const byMeal = energyByMeal(items);
+  const editingShown = draft?.item ? items.some(({ id }) => id === draft.item!.id) : false;
+  const form = draft && <DietForm
+    key={draft.key} date={date} meal={draft.meal} item={draft.item} revision={revision}
+    onOpenFood={onOpenFood} onCancel={cancelDraft} onSaved={() => draftSaved(draft.key)} reportDirty={reportDirty}
+  />;
 
   return <div className="cal-daily">
-    <div className="cal-day-bar">
-      <h2>每日饮食</h2>
-      <div className="cal-date-controls">
-        <button type="button" className="cal-icon-button" aria-label="前一天" onClick={() => changeDate(shiftDate(date, -1))}>‹</button>
-        <input type="date" aria-label="饮食日期" value={date} onChange={(event) => changeDate(event.target.value)} />
-        <button type="button" className="cal-icon-button" aria-label="后一天" onClick={() => changeDate(shiftDate(date, 1))}>›</button>
-        <button type="button" className="cal-button cal-small" onClick={() => changeDate(localDate())} disabled={date === localDate()}>今天</button>
+    <DateNav date={date} onChange={changeDate} />
+
+    {error && <Banner onRetry={refresh}>{justSaved ? `饮食记录已保存。${error}` : error}</Banner>}
+    {remove.error && <Banner onDismiss={remove.clearError}>{remove.error}</Banner>}
+
+    <div className="cal-daily-grid">
+      <Summary summary={summary} onOpenProfile={onOpenProfile} />
+      <div className="cal-meals" aria-busy={summary === undefined}>
+        {meals.map((meal) => {
+          const adding = draft && (draft.item ? !editingShown && draft.item.meal === meal : draft.meal === meal);
+          return <MealSection
+            key={meal} meal={meal} kcal={byMeal[meal]} loading={summary === undefined}
+            items={items.filter((item) => item.meal === meal)}
+            addForm={adding ? form : undefined}
+            editing={draft?.item && editingShown ? { id: draft.item.id, form } : undefined}
+            deleting={remove.busy}
+            onAdd={(target) => startDraft(target)}
+            onEdit={(item) => startDraft(item.meal, item)}
+            onDelete={deleteItem}
+            onOpenFood={openItemFood}
+          />;
+        })}
       </div>
-    </div>
-    <Summary value={resource.data} />
-    {resource.error && <ErrorNotice text={
-      `${savedDate === date ? '饮食记录已保存。' : ''}${resource.data ? '更新失败，当前显示上次读取的记录。' : ''}${resource.error}`
-    } retry={resource.refresh} />}
-    {!resource.error && !resource.data && <Loading />}
-    <div className="cal-meals" aria-busy={!resource.data && !resource.error}>
-      {meals.map((meal) => <MealCard
-        key={`${date}/${meal}`} meal={meal} items={resource.data?.items.filter((entry) => entry.meal === meal)}
-        onAdd={() => startDraft(meal)} onEdit={(entry) => startDraft(meal, entry)}
-        openFoodEditor={openFoodEditor} onRemoved={resource.refresh}
-      >
-        {draft?.meal === meal && <DietForm
-          key={draft.key} date={date} meal={meal} entry={draft.entry} revision={revision}
-          openFoodEditor={openFoodEditor} onCancel={() => { if (discardDraft()) setDraft(undefined); }}
-          onDirty={() => setDraft((current) => current?.key === draft.key && !current.dirty ? { ...current, dirty: true } : current)}
-          onSaved={() => { setSavedDate(date); setDraft((current) => current?.key === draft.key ? undefined : current); resource.refresh(); }}
-        />}
-      </MealCard>)}
     </div>
   </div>;
 }

@@ -1,6 +1,6 @@
 {
   "name": "dsh-calorie-helper",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "DSH 卡路里记录",
   "type": "module",
   "main": "./lib/index.js",

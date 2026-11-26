@@ -5,7 +5,7 @@
 退出 DeepSeek Harness（Windows 可从托盘菜单选择「退出」），再从包含安装包的目录执行。重新打开 DSH 后，点击侧边栏的「卡路里记录」。
 
 ```powershell
-dsh plugin --profile desktop add ./dsh-calorie-helper-0.2.0.tgz
+dsh plugin --profile desktop add ./dsh-calorie-helper-0.2.2.tgz
 ```
 
 插件会导入旧记录并将原 JSON 归档到 `DSH_HOME/storages/calorie-helper/legacy-calorie_helper.json`。之后的数据在同目录的 `calorie.sqlite`，以及 SQLite 使用中的伴随文件里。未指定 `DSH_HOME` 时，使用用户目录下的 `.dsh`。升级完成后新增的记录只会进入 SQLite，0.1 版读取的是旧格式数据。
