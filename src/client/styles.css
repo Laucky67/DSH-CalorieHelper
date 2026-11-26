@@ -1,0 +1,143 @@
+.calorie-shell {
+  --cal-bg: #f7f5ee;
+  --cal-card: #fffdf8;
+  --cal-soft: #f0eee4;
+  --cal-ink: #202a23;
+  --cal-muted: #637168;
+  --cal-line: #e1e2d6;
+  --cal-accent: #265c49;
+  --cal-accent-ink: #fffdf8;
+  --cal-focus: #1e7659;
+  --cal-danger: #9a3f3b;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  background: var(--cal-bg);
+  color: var(--cal-ink);
+  font-family: inherit;
+  color-scheme: light;
+}
+
+[data-theme='dark'] .calorie-shell, .dark .calorie-shell {
+  --cal-bg: #171e1b;
+  --cal-card: #202925;
+  --cal-soft: #29332d;
+  --cal-ink: #f2f1e7;
+  --cal-muted: #aebdb2;
+  --cal-line: #3b493f;
+  --cal-accent: #b0d6bc;
+  --cal-accent-ink: #1a3b2d;
+  --cal-focus: #9bd7b6;
+  --cal-danger: #f3a49d;
+  color-scheme: dark;
+}
+
+.calorie-shell *, .calorie-shell *::before, .calorie-shell *::after { box-sizing: inherit; }
+.calorie-shell [hidden] { display: none !important; }
+.calorie-shell :where(h1, h2, h3, p, ul, dl, dd) { margin: 0; }
+.calorie-shell :where(button, input, select) { font: inherit; }
+.calorie-shell button { cursor: pointer; }
+.calorie-shell button:disabled { cursor: default; opacity: .55; }
+.calorie-shell :where(button, input, select):focus-visible { outline: 2px solid var(--cal-focus); outline-offset: 3px; }
+
+.cal-container { max-width: 1060px; margin-inline: auto; padding: clamp(20px, 5vw, 56px); }
+.cal-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 22px; flex-wrap: wrap; padding-bottom: 20px; border-bottom: 1px solid var(--cal-line); margin-bottom: 28px; }
+.cal-header h1 { font-size: clamp(29px, 4vw, 43px); font-weight: 760; line-height: 1.1; letter-spacing: -.04em; }
+.cal-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--cal-soft); border-radius: 10px; }
+.cal-nav button { border: 1px solid transparent; padding: 7px 12px; border-radius: 7px; background: transparent; color: var(--cal-muted); font-size: 13px; font-weight: 650; white-space: nowrap; }
+.cal-nav button[aria-current] { background: var(--cal-card); color: var(--cal-ink); border-color: var(--cal-line); }
+.cal-nav button:hover { color: var(--cal-ink); }
+
+.cal-day-bar, .cal-section-heading, .cal-date-controls, .cal-row, .cal-row-actions, .cal-food-name, .cal-actions, .cal-delete-prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cal-day-bar, .cal-section-heading, .cal-row { justify-content: space-between; gap: 14px; }
+.cal-day-bar { margin-bottom: 16px; flex-wrap: wrap; }
+.cal-day-bar h2, .cal-section-heading h2 { font-size: 18px; font-weight: 720; }
+.cal-date-controls { flex-wrap: wrap; }
+.cal-date-controls input { width: auto; }
+
+.cal-button, .cal-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border: 1px solid var(--cal-line);
+  border-radius: 8px;
+  padding: 7px 12px;
+  background: var(--cal-card);
+  color: var(--cal-ink);
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.cal-button:hover:not(:disabled), .cal-icon-button:hover:not(:disabled) { background: var(--cal-soft); }
+.cal-primary, .cal-primary:hover:not(:disabled) { border-color: var(--cal-accent); background: var(--cal-accent); color: var(--cal-accent-ink); }
+.cal-primary:hover:not(:disabled) { filter: brightness(1.12); }
+.cal-small { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+.cal-icon-button { width: 35px; min-width: 35px; padding: 0; font-size: 18px; }
+.cal-food-name .cal-icon-button { width: 26px; min-width: 26px; min-height: 25px; border-color: transparent; font-size: 15px; color: var(--cal-muted); }
+.cal-danger { color: var(--cal-danger); }
+
+.cal-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
+.cal-metric { border: 1px solid var(--cal-line); border-radius: 15px; background: var(--cal-card); padding: clamp(12px, 2.8vw, 24px); }
+.cal-metric:first-child { background: var(--cal-accent); color: var(--cal-accent-ink); border-color: var(--cal-accent); }
+.cal-metric dt { font-size: 13px; font-weight: 650; }
+.cal-metric dd { margin-top: 9px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; font-size: clamp(24px, 4vw, 40px); line-height: 1.1; font-weight: 750; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cal-metric dd span { font-size: 12px; font-weight: 600; }
+
+.cal-meals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.cal-card { background: var(--cal-card); border: 1px solid var(--cal-line); border-radius: 15px; padding: clamp(14px, 2.5vw, 22px); min-width: 0; }
+.cal-meal { position: relative; }
+.cal-meal h2 { display: flex; gap: 9px; align-items: center; }
+.cal-meal h2::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #c58b42; }
+.cal-meal[data-meal='lunch'] h2::before { background: #639079; }
+.cal-meal[data-meal='dinner'] h2::before { background: #8372a8; }
+.cal-meal[data-meal='snack'] h2::before { background: #bc7568; }
+.cal-empty { margin-top: 12px; padding: 12px 0 4px; color: var(--cal-muted); font-size: 13px; }
+.cal-list { padding: 0; list-style: none; }
+.cal-list li { border-top: 1px solid var(--cal-line); margin-top: 11px; padding-top: 11px; }
+.cal-row-actions { flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.cal-row strong { font-size: 14px; overflow-wrap: anywhere; }
+.cal-secondary { color: var(--cal-muted); font-size: 13px; margin-top: 4px; }
+.cal-delete-prompt { justify-content: flex-end; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+
+.cal-editor { max-width: 760px; }
+.cal-form { display: grid; gap: 16px; margin-top: 18px; }
+.cal-diet-form { margin-top: 14px; border-top: 1px solid var(--cal-line); padding-top: 14px; }
+.cal-diet-form h3 { font-size: 15px; }
+.cal-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cal-form-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cal-field { display: grid; gap: 5px; min-width: 0; color: var(--cal-muted); font-size: 13px; font-weight: 650; }
+.calorie-shell :where(input, select) { min-width: 0; min-height: 36px; padding: 6px 9px; border: 1px solid var(--cal-line); border-radius: 7px; background: var(--cal-card); color: var(--cal-ink); font-size: 13px; font-weight: 520; }
+.cal-field input, .cal-field select { width: 100%; }
+.cal-fieldset { display: grid; gap: 12px; min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--cal-line); border-radius: 9px; }
+.cal-fieldset legend { color: var(--cal-ink); font-size: 14px; font-weight: 700; padding-inline: 5px; }
+.cal-fieldset > .cal-button { justify-self: start; }
+.cal-portion-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; align-items: end; }
+.cal-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: end; }
+.cal-picker > .cal-button:last-child { grid-column: 3; }
+.cal-actions { justify-content: flex-end; flex-wrap: wrap; }
+.cal-search { max-width: 350px; margin-top: 15px; margin-bottom: 15px; }
+.cal-error { display: flex; gap: 10px; align-items: center; color: var(--cal-danger); border: 1px solid var(--cal-line); border-radius: 8px; margin: 8px 0; padding: 8px 10px; font-size: 13px; }
+.cal-loading { color: var(--cal-muted); padding: 9px 0; font-size: 13px; }
+
+@media (max-width: 750px) {
+  .cal-meals { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 460px) {
+  .cal-container { padding: 14px; }
+  .cal-metrics { gap: 5px; }
+  .cal-metric { padding: 9px; }
+  .cal-metric dt { font-size: 11px; }
+  .cal-metric dd { font-size: 20px; }
+  .cal-portion-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cal-row { align-items: flex-start; }
+  .cal-row-actions { max-width: 45%; }
+}
