@@ -1,6 +1,6 @@
 {
   "name": "dsh-calorie-helper",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "DSH 卡路里记录",
   "type": "module",
   "main": "./lib/index.js",
@@ -10,7 +10,7 @@
     "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
-  "files": ["lib", "cordis.patch.yml", "scripts/data.mjs"],
+  "files": ["lib", "cordis.patch.yml", "scripts/data.mjs", "skills/meal-logging"],
   "engines": { "node": ">=24.9.0", "dsh": "0.2.2-rc.5" },
   "dsh": {
     "manifestVersion": 1,
@@ -31,13 +31,14 @@
     "test": "node --test test/*.test.ts",
     "prepack": "pnpm typecheck && pnpm test && pnpm build && node scripts/verify-package.mjs"
   },
-  "dependencies": { "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5", "zod": "4.6.6" },
+  "dependencies": { "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5", "yaml": "2.9.1", "zod": "4.6.6" },
   "peerDependencies": {
     "@deepseek-ai/cordis": "~4.1.0",
     "@deepseek-ai/dsh-client-connection": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-ui-renderer": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-ui-sidebar": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-skill": "0.2.2-rc.5",
     "@deepseek-ai/dsh-storage-domain": "0.2.2-rc.5",
     "@deepseek-ai/dsh-tools": "0.2.2-rc.5",
     "@deepseek-ai/schemastery": "~3.19.0",

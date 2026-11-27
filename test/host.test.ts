@@ -1,14 +1,31 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { Context } from '@deepseek-ai/cordis';
 import { ToolCallId } from '@deepseek-ai/dsh-llm';
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt';
+import Skills from '@deepseek-ai/dsh-skill';
 import * as NativeExecutor from '@deepseek-ai/dsh-tool-executor-native';
 import Tools from '@deepseek-ai/dsh-tools';
 import { createTracker } from '../src/core/tracker.ts';
 import { createClientRoute } from '../src/host/route.ts';
+import { registerMealSkill } from '../src/host/skills.ts';
 import { registerTools } from '../src/host/tools.ts';
 import { memoryStorage } from './support.ts';
+
+test('DSH 可以发现并加载随包提供的记餐 Skill', async (t) => {
+  const ctx = new Context();
+  t.after(() => ctx.fiber.dispose());
+  await ctx.plugin(Skills);
+  const file = new URL('../skills/meal-logging/SKILL.md', import.meta.url);
+  const plugin = await ctx.plugin({ inject: ['skills'], apply: (child: Context) => registerMealSkill(child, file) });
+
+  assert((await ctx.skills.list()).some(({ name, invocation }) => name === 'meal-logging' && invocation.modelInvocable));
+  const markdown = await readFile(file, 'utf8');
+  assert.equal((await ctx.skills.get('meal-logging'))?.content, markdown.slice(markdown.indexOf('# 记餐')).trim());
+  await plugin.dispose();
+  assert.equal(await ctx.skills.get('meal-logging'), undefined);
+});
 
 test('通过实际 DSH 工具批量记餐，页面接口可读取同一份饮食清单', async (t) => {
   const ctx = new Context();

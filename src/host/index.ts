@@ -5,13 +5,15 @@ import type { Tracker } from '../core/tracker.ts';
 import { TrackerError } from '../core/errors.ts';
 import { describeFailure } from './failures.ts';
 import { createClientRoute } from './route.ts';
+import { registerMealSkill } from './skills.ts';
 import { openPluginStorage } from './storage.ts';
 import { registerTools } from './tools.ts';
 
 export const name = 'calorie-helper';
-export const inject = ['tools', 'connection', 'storageDomain'];
+export const inject = ['tools', 'connection', 'storageDomain', 'skills'];
 
 export function apply(ctx: Context): void {
+  registerMealSkill(ctx, new URL('../skills/meal-logging/SKILL.md', import.meta.url));
   let disposed = false;
   let close: (() => void) | undefined;
   let pending: Promise<Tracker> | undefined;
