@@ -2,6 +2,7 @@
   "name": "dsh-calorie-helper",
   "version": "0.2.3",
   "description": "DSH 卡路里记录",
+  "repository": { "type": "git", "url": "https://github.com/Laucky67/DSH-CalorieHelper.git" },
   "type": "module",
   "main": "./lib/index.js",
   "bin": { "calorie-helper-data": "./scripts/data.mjs" },

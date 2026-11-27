@@ -80,3 +80,11 @@ pnpm pack --pack-destination dist
 ```
 
 打包结果在 `dist/` 下。
+
+## 发布
+
+PR 和推送到 `main` 会运行检查，成功后可在 GitHub Actions 的运行页面下载 `.tgz`。
+
+首次自动发布前，在 npm 包的设置中添加 GitHub Actions Trusted Publisher。所有者填写 `Laucky67`，仓库填写 `DSH-CalorieHelper`，工作流文件名填写 `release.yml`，允许 `npm publish`。
+
+更新版本并提交后，推送与版本号一致的标签，例如 `v0.2.4`。发布工作流会先用 DSH Web 安装并验证安装包，然后将同一个 `.tgz` 发布到 npm 并附到 GitHub Release。

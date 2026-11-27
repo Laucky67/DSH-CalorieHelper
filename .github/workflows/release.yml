@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    if: github.event.created
+    uses: ./.github/workflows/ci.yml
+
+  verify:
+    name: Verify package in DSH Web
+    needs: package
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.25.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-plugin
+          path: dist
+      - name: Check version and install in an isolated DSH profile
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -Raw -LiteralPath package.json | ConvertFrom-Json
+          if ($env:GITHUB_REF_NAME -cne "v$($manifest.version)") {
+            throw "Tag $env:GITHUB_REF_NAME does not match package version $($manifest.version)"
+          }
+          $package = "dist/$($manifest.name)-$($manifest.version).tgz"
+          $runtime = Join-Path $env:RUNNER_TEMP 'dsh-runtime'
+          npm install --prefix $runtime --no-package-lock --no-audit --no-fund "@deepseek-ai/dsh@$($manifest.engines.dsh)"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./test/integration/dsh-release.ps1 -DshEntry (Join-Path $runtime 'node_modules/@deepseek-ai/dsh/lib/bin.js') -Package $package
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-plugin
+          path: dist
+      - name: Publish the verified archive to npm
+        run: |
+          archive="dist/dsh-calorie-helper-${GITHUB_REF_NAME#v}.tgz"
+          export ARCHIVE="$archive"
+          if node --input-type=module <<'JS'
+          import { createHash } from 'node:crypto';
+          import { readFileSync } from 'node:fs';
+
+          const version = process.env.GITHUB_REF_NAME.slice(1);
+          const response = await fetch(`https://registry.npmjs.org/dsh-calorie-helper/${version}`);
+          if (response.status === 404) process.exit(20);
+          if (!response.ok) throw new Error(`npm registry returned HTTP ${response.status}`);
+
+          const { dist } = await response.json();
+          const integrity = 'sha512-' + createHash('sha512').update(readFileSync(process.env.ARCHIVE)).digest('base64');
+          if (dist.integrity !== integrity) throw new Error(`npm already has a different archive for ${version}`);
+          console.log(`Verified the already published npm archive for ${version}`);
+          JS
+          then
+            exit 0
+          else
+            status=$?
+            if [ "$status" -ne 20 ]; then exit "$status"; fi
+          fi
+          npm publish "$archive" --access public
+      - name: Attach the archive to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          archive="dist/dsh-calorie-helper-${GITHUB_REF_NAME#v}.tgz"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            name="${archive##*/}"
+            existing="$(gh api "repos/$GH_REPO/releases/tags/$GITHUB_REF_NAME" --jq ".assets[] | select(.name == \"$name\") | .digest")"
+            if [ -n "$existing" ]; then
+              checksum="$(sha256sum "$archive" | cut -d ' ' -f 1)"
+              if [ "$existing" != "sha256:$checksum" ]; then
+                echo "GitHub Release already has a different archive named $name" >&2
+                exit 1
+              fi
+            else
+              gh release upload "$GITHUB_REF_NAME" "$archive"
+            fi
+          else
+            gh release create "$GITHUB_REF_NAME" "$archive" --verify-tag --generate-notes
+          fi
