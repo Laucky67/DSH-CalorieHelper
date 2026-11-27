@@ -1,13 +1,30 @@
-# DSH 卡路里记录
+<p align="center">
+  <img src=".github/assets/project-logo.png" width="96" height="96" alt="DSH 卡路里记录 Logo">
+</p>
 
-DeepSeek Harness 插件，用来记录每天吃了什么、摄入了多少热量。
+<h1 align="center">DSH 卡路里记录</h1>
+
+<p align="center">DeepSeek Harness 插件，用来记录每天吃了什么、摄入了多少热量。</p>
+
+<p align="center">
+  <a href="#快速开始">快速开始</a> ·
+  <a href="#功能">功能</a> ·
+  <a href="#备份与恢复">备份与恢复</a> ·
+  <a href="#开发">开发</a>
+</p>
+
+![鲸鱼娘发现白饭、查热量、记下一餐，再展示热量圆环](.github/assets/meal-logging-banner.png)
+
+## 功能
 
 - **饮食记录**：按早餐、午餐、晚餐、零嘴记录每天吃的东西，自动算出每餐和全天的热量。
 - **食物库**：保存常吃的食物及其营养资料，可以设置「1 碗 = 150 g」这样的份量换算。
 - **个人资料**：填写出生日期、性别、身高、体重和日常活动等级后，会估算每天的维持热量，并显示与摄入热量的差值。
 - **和 AI 对话记录**：在 DSH 里直接告诉 AI 你吃了什么，它会帮你查找食物并记下来。
 
-## 安装
+![今日饮食记录，左侧是热量圆环和热量差值，右侧按餐次列出食物与热量](.github/assets/diet-log.png)
+
+## 快速开始
 
 **在 DSH 里安装**（桌面端和 Web 端均可）。打开「插件」→「添加插件」，输入 `dsh-calorie-helper`，点击「安装」，再点击「立即启用」。启用后，从侧边栏打开「卡路里记录」。
 
@@ -18,6 +35,12 @@ dsh plugin --profile web add dsh-calorie-helper
 ```
 
 当前版本适配 DeepSeek Harness `0.2.2-rc.5`。
+
+发送下面的提示词试试吧：
+
+```prompt
+我今天吃了麦当劳的酥酥多笋卷和小薯条，玉米杯
+```
 
 ## 数据在哪里
 
