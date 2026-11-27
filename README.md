@@ -1,28 +1,55 @@
 # DSH 卡路里记录
 
-## 从 0.1 版升级
+DeepSeek Harness 插件，用来记录每天吃了什么、摄入了多少热量。
 
-退出 DeepSeek Harness（Windows 可从托盘菜单选择「退出」），再从包含安装包的目录执行。重新打开 DSH 后，点击侧边栏的「卡路里记录」。
+- **饮食记录**：按早餐、午餐、晚餐、零嘴记录每天吃的东西，自动算出每餐和全天的热量。
+- **食物库**：保存常吃的食物及其营养资料，可以设置「1 碗 = 150 g」这样的份量换算。
+- **个人资料**：填写出生日期、性别、身高、体重和日常活动等级后，会估算每天的维持热量，并显示与摄入热量的差值。
+- **和 AI 对话记录**：在 DSH 里直接告诉 AI 你吃了什么，它会帮你查找食物并记下来。
+
+## 安装
+
+**在 DSH 里安装**（桌面端和 Web 端均可）。打开「插件」→「添加插件」，输入 `dsh-calorie-helper`，点击「安装」，再点击「立即启用」。启用后，从侧边栏打开「卡路里记录」。
+
+**通过命令行安装到 `dsh web`**。执行下列命令，然后重启 `dsh web`。
 
 ```powershell
-dsh plugin --profile desktop add ./dsh-calorie-helper-0.2.2.tgz
+dsh plugin --profile web add dsh-calorie-helper
 ```
 
-插件会导入旧记录并将原 JSON 归档到 `DSH_HOME/storages/calorie-helper/legacy-calorie_helper.json`。之后的数据在同目录的 `calorie.sqlite`，以及 SQLite 使用中的伴随文件里。未指定 `DSH_HOME` 时，使用用户目录下的 `.dsh`。升级完成后新增的记录只会进入 SQLite，0.1 版读取的是旧格式数据。
+当前版本适配 DeepSeek Harness `0.2.2-rc.5`。
+
+## 数据在哪里
+
+所有数据保存在 `DSH_HOME/storages/calorie-helper/calorie.sqlite`。没有设置 `DSH_HOME` 时，它是用户目录下的 `.dsh`。
 
 ## 备份与恢复
 
-在当前项目已有构建产物的情况下执行以下命令。安装包内也附有 `scripts/data.mjs`，可以用 Node.js 24.9 或更新版本直接运行。
+**备份**可以在 DSH 运行时进行：
 
 ```powershell
 node scripts/data.mjs backup
 ```
 
-备份可在 DSH 运行时执行。命令输出独立备份文件的路径，文件位于插件目录的 `backups/`。迁移到另一台电脑时，可以携带这一份 SQLite 快照。
+命令会打印备份文件的路径，文件保存在数据目录下的 `backups/` 里。换电脑时带上这一个文件就够了。
+
+**恢复**要先退出 DSH：
 
 ```powershell
-$env:DSH_HOME = 'D:\DSH-恢复'
-node scripts/data.mjs restore 'D:\备份\calorie-原备份文件名.sqlite'
+node scripts/data.mjs restore 'D:\备份\calorie-xxxx.sqlite'
 ```
 
-在目标 DSH 停止时执行恢复。恢复命令会先检查备份完整性，并保护目标已有的数据库与伴随文件。要恢复到原目录，先退出 DSH，再把现有的 `calorie.sqlite`、`calorie.sqlite-wal` 和 `calorie.sqlite-shm` 一并另存，最后对原 `DSH_HOME` 执行恢复。
+如果数据目录里已经有数据，恢复会拒绝覆盖。确实要覆盖时，先把 `calorie.sqlite`、`calorie.sqlite-wal`、`calorie.sqlite-shm` 移到别处保存，再执行恢复。
+
+`scripts/data.mjs` 也随安装包附带，需要 Node.js 24.9 或更新版本。
+
+## 开发
+
+```powershell
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm pack --pack-destination dist
+```
+
+打包结果在 `dist/` 下。
