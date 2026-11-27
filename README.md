@@ -13,7 +13,7 @@
   <a href="#开发">开发</a>
 </p>
 
-![鲸鱼娘发现白饭、查热量、记下一餐，再展示热量圆环](.github/assets/meal-logging-banner.png)
+![横幅](.github/assets/meal-logging-banner.png)
 
 ## 功能
 
@@ -26,21 +26,25 @@
 
 ## 快速开始
 
-**在 DSH 里安装**（桌面端和 Web 端均可）。打开「插件」→「添加插件」，输入 `dsh-calorie-helper`，点击「安装」，再点击「立即启用」。启用后，从侧边栏打开「卡路里记录」。
+**安装方式一 (DSH 内安装)：**
 
-**通过命令行安装到 `dsh web`**。执行下列命令，然后重启 `dsh web`。
+打开「插件」→「添加插件」，输入 `dsh-calorie-helper`，点击「安装」，再点击「立即启用」。启用后，从侧边栏打开「卡路里记录」。
+
+**安装方式二 (命令行安装):**
+
+执行下列命令，然后重启 `dsh web`。
 
 ```powershell
 dsh plugin --profile web add dsh-calorie-helper
 ```
 
-当前版本适配 DeepSeek Harness `0.2.2-rc.5`。
 
-发送下面的提示词试试吧：
+**发送下面的提示词试试吧:**
 
 ```prompt
 我今天吃了麦当劳的酥酥多笋卷和小薯条，玉米杯
 ```
+
 
 ## 数据在哪里
 
