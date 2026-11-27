@@ -89,7 +89,7 @@ jobs:
             status=$?
             if [ "$status" -ne 20 ]; then exit "$status"; fi
           fi
-          npm publish "$archive" --access public
+          npm publish "./$archive" --access public
       - name: Attach the archive to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
