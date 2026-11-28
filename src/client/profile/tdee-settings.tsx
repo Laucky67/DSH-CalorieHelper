@@ -8,11 +8,11 @@ import type { ProfileDraft, ProfileErrors } from './draft.ts';
 const methodDetails = {
   'nasem-2023': {
     name: 'NASEM 2023',
-    description: '根据年龄、性别、身高、体重和日常活动等级，直接估算全天维持热量。',
+    description: '默认。适合大部分人群。根据基本信息与日常活动等级直接估算全天维持热量。',
   },
   'mifflin-st-jeor': {
     name: 'Mifflin–St Jeor',
-    description: '根据年龄、性别、身高和体重估算静息消耗，再结合日常活动等级估算全天维持热量。',
+    description: '计算结果较低，适宜高度自律人群。根据基本信息与日常活动等级估算静息消耗，再结合日常活动等级估算全天维持热量。',
   },
 };
 
