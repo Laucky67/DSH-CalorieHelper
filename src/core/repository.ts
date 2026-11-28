@@ -18,6 +18,8 @@ export interface TrackerRepository {
   amountsForFood(id: string): Quantity[];
   entry(id: string): DietEntry | undefined;
   entries(query: ToolInput<'diet_query'>): Array<{ entry: DietEntry; food: Food }>;
+  entriesBetween(start: string, end: string): Iterable<{ entry: DietEntry; food: Food }>;
+  recordedDates(through: string): string[];
   insertEntry(entry: DietEntry): void;
   updateEntry(entry: DietEntry): void;
   deleteEntry(id: string): void;

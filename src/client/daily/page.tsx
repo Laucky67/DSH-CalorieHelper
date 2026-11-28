@@ -14,6 +14,7 @@ import { Summary } from './summary.tsx';
 import { useDailySummary, useFollowedDate } from './use-day.ts';
 
 type Props = {
+  initialDate?: string;
   revision: number;
   onOpenFood: OpenFood;
   onOpenProfile: () => void;
@@ -23,11 +24,11 @@ type Props = {
 /** 正在编辑的草稿：添加某一餐，或修改某条记录。 */
 type Draft = { key: number; meal: Meal; item?: DietItem };
 
-export function DailyPage({ revision, onOpenFood, onOpenProfile, onDirtyChange }: Props) {
+export function DailyPage({ initialDate, revision, onOpenFood, onOpenProfile, onDirtyChange }: Props) {
   const [draft, setDraft] = useState<Draft>();
   const draftDirty = useRef(false);
   const nextKey = useRef(0);
-  const [date, setDate] = useFollowedDate(draft === undefined);
+  const [date, setDate] = useFollowedDate(draft === undefined, initialDate);
   const { summary, fresh, error, refresh } = useDailySummary(date, revision);
   const [justSaved, setJustSaved] = useState(false);
   const remove = useMutation();

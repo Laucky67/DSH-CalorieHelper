@@ -2,9 +2,10 @@ import { clientResults } from '../core/contracts.ts';
 import type { ClientAction, ClientInput } from '../core/contracts.ts';
 import type { Tracker } from '../core/tracker.ts';
 
-export type MutationAction = Exclude<ClientAction, 'food_search' | 'diet_query' | 'daily_summary' | 'profile_get'>;
+const readActions = ['food_search', 'diet_query', 'daily_summary', 'profile_get', 'trends'] as const;
+export type MutationAction = Exclude<ClientAction, (typeof readActions)[number]>;
 export type ClientResult<Action extends ClientAction> = { [Key in ClientAction]: Awaited<ReturnType<Tracker[Key]>> }[Action];
-const reads = new Set<ClientAction>(['food_search', 'diet_query', 'daily_summary', 'profile_get']);
+const reads = new Set<ClientAction>(readActions);
 
 export class RequestError extends Error {
   readonly code: string;

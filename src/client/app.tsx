@@ -12,13 +12,16 @@ import base from './styles/base.css';
 import daily from './styles/daily.css';
 import foods from './styles/foods.css';
 import profile from './styles/profile.css';
+import trends from './styles/trends.css';
+import { TrendsPage } from './trends/page.tsx';
 
-const stylesheet = [base, daily, foods, profile].join('\n');
+const stylesheet = [base, daily, foods, profile, trends].join('\n');
 
 type Editor = { key: number; target: FoodTarget; onSaved?: (food: Food) => void; returnFocus: Element | null };
 
 export function CalorieApp() {
   const [tab, setTab] = useState<Tab>('daily');
+  const [dailyDate, setDailyDate] = useState<string>();
   const [revision, setRevision] = useState(0);
   const [editor, setEditor] = useState<Editor>();
   const pageDirty = useRef(false);
@@ -32,6 +35,7 @@ export function CalorieApp() {
   const switchTab = (next: Tab) => {
     if (next === tab || !confirmDiscard(pageDirty.current)) return;
     pageDirty.current = false;
+    setDailyDate(undefined);
     setTab(next);
   };
 
@@ -77,8 +81,10 @@ export function CalorieApp() {
       <main className="cal-scroll">
         <div className="cal-page" key={tab}>
           {tab === 'daily' && <DailyPage
+            initialDate={dailyDate}
             revision={revision} onOpenFood={openFood} onOpenProfile={() => switchTab('profile')} onDirtyChange={reportDirty}
           />}
+          {tab === 'trends' && <TrendsPage onOpenDate={(date) => { setDailyDate(date); setTab('daily'); }} />}
           {tab === 'foods' && <FoodsPage revision={revision} onOpenFood={openFood} />}
           {tab === 'profile' && <ProfilePage onSaved={bump} onDirtyChange={reportDirty} />}
         </div>

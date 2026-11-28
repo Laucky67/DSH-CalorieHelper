@@ -16,6 +16,8 @@ export const weightMax = 1000;
 const batchMax = 100;
 export const dateSchema = z.iso.date();
 export const mealSchema = z.enum(meals);
+export const trendRanges = ['7', '30', '90', 'all'] as const;
+export const trendNutrients = ['proteinG', 'fatG', 'carbsG'] as const;
 
 export const legacyQuantitySchema = z.strictObject({ value: z.number().positive(), unit: oldText });
 export const quantitySchema = z.strictObject({ value: z.number().min(amountMin).max(amountMax), unit });
@@ -90,6 +92,7 @@ export const clientSchemas = {
     ifAlreadySaved: z.enum(['use_saved', 'add_another']).optional(),
   }),
   daily_summary: z.strictObject({ date: dateSchema }),
+  trends: z.strictObject({ range: z.enum(trendRanges), timeZone }),
   profile_get: z.strictObject({ timeZone }),
   profile_save: profileSchema.extend({ timeZone, expectedVersion: z.number().int().positive().nullable().optional(), operationId }),
 };
@@ -98,10 +101,21 @@ const storedFood = legacyFoodSchema.extend({ id });
 const itemResult = entrySchema.extend({ id, foodName: oldText, amount: legacyQuantitySchema, nutrition: oldNutritionValuesSchema });
 const dietResult = z.strictObject({ items: z.array(itemResult), totalKcal: z.number().nonnegative() });
 const profileResult = legacyProfileSchema.extend({ version: z.number().int().positive().nullable() });
+const trendResult = z.strictObject({
+  days: z.array(z.strictObject({
+    date: dateSchema, intakeKcal: z.number().nonnegative().nullable(), maintenanceKcal: z.number().positive().nullable(),
+  })),
+  recordedDays: z.number().int().nonnegative(),
+  streak: z.strictObject({ current: z.number().int().nonnegative(), longest: z.number().int().nonnegative() }),
+  averages: z.record(z.enum(trendNutrients), z.strictObject({
+    grams: z.number().nonnegative().nullable(), days: z.number().int().nonnegative(),
+  })),
+});
 export const clientResults = {
   food_search: z.array(storedFood), food_create: storedFood, food_update: storedFood, food_delete: z.strictObject({ id }),
   diet_create: z.array(itemResult), diet_query: dietResult, diet_update: itemResult, diet_delete: z.strictObject({ id }),
   daily_summary: dietResult.extend({ maintenanceKcal: z.number().nullable(), differenceKcal: z.number().nullable() }),
+  trends: trendResult,
   profile_get: profileResult, profile_save: profileResult,
 };
 
@@ -116,6 +130,8 @@ export type DietResult = { items: DietItem[]; totalKcal: number };
 export type Profile = z.infer<typeof profileSchema>;
 export type ProfileVersion = { effectiveDate: string; profile: Profile };
 export type DailySummary = DietResult & { maintenanceKcal: number | null; differenceKcal: number | null };
+export type TrendRange = (typeof trendRanges)[number];
+export type Trends = z.infer<typeof trendResult>;
 export type ToolName = keyof typeof toolSchemas;
 export type ToolInput<Name extends ToolName> = z.infer<(typeof toolSchemas)[Name]>;
 export type ClientAction = keyof typeof clientSchemas;

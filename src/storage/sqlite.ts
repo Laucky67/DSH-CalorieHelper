@@ -101,8 +101,8 @@ export function openSqlite(path: string) {
     return rows.map(decodeFood);
   }
 
+  const selection = `SELECT e.*, f.name, f.nutrition, f.portions FROM diet_entries e JOIN foods f ON f.id=e.food_id`;
   function entries(query: ToolInput<'diet_query'>) {
-    const selection = `SELECT e.*, f.name, f.nutrition, f.portions FROM diet_entries e JOIN foods f ON f.id=e.food_id`;
     const rows = 'id' in query ? database.prepare(`${selection} WHERE e.id=?`).all(query.id)
       : query.meal ? database.prepare(`${selection} WHERE e.date=? AND e.meal=? ORDER BY e.rowid`).all(query.date, query.meal)
       : database.prepare(`${selection} WHERE e.date=? ORDER BY e.rowid`).all(query.date);
@@ -150,6 +150,15 @@ export function openSqlite(path: string) {
       return row ? decodeEntry(row) : undefined;
     },
     entries,
+    *entriesBetween(start, end) {
+      for (const row of database.prepare(`${selection} WHERE e.date BETWEEN ? AND ? ORDER BY e.date`).iterate(start, end)) {
+        yield { entry: decodeEntry(row), food: decodeFood(row) };
+      }
+    },
+    recordedDates(through) {
+      return database.prepare('SELECT DISTINCT date FROM diet_entries WHERE date<=? ORDER BY date').all(through)
+        .map(({ date }) => String(date));
+    },
     insertEntry(entry) { database.prepare('INSERT INTO diet_entries VALUES(?,?,?,?,?,?)').run(entry.id, ...entryValues(entry)); },
     updateEntry(entry) {
       database.prepare('UPDATE diet_entries SET date=?,meal=?,food_id=?,quantity=?,unit=? WHERE id=?').run(...entryValues(entry), entry.id);

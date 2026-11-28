@@ -1,0 +1,58 @@
+.cal .cal-trends-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.cal .cal-trends-heading h1 { margin: 0; font-size: 22px; font-weight: 650; }
+.cal .cal-trend-ranges { display: flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--cal-surface-2); }
+.cal .cal-trend-ranges button { border: 0; border-radius: 7px; background: transparent; color: var(--cal-text-2); padding: 6px 14px; font: inherit; cursor: pointer; white-space: nowrap; }
+.cal .cal-trend-ranges button[aria-pressed='true'] { color: var(--cal-text); background: var(--cal-surface); box-shadow: var(--cal-shadow-lift); }
+.cal .cal-trends-grid { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 18px; align-items: start; }
+.cal .cal-trends h2 { margin: 0; font-size: 16px; font-weight: 650; }
+.cal .cal-trend-chart { padding: 22px; min-width: 0; }
+.cal .cal-trend-chart-heading { display: flex; align-items: baseline; gap: 10px; }
+.cal .cal-trend-legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 16px 0 12px; font-size: 12px; color: var(--cal-text-2); }
+.cal .cal-trend-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.cal .cal-trend-legend i { width: 18px; border-top: 3px solid var(--cal-accent); border-radius: 2px; }
+.cal .cal-trend-legend .is-maintenance { border-top: 2px dashed var(--cal-text-3); }
+.cal .cal-trend-plot { width: 100%; min-width: 0; }
+.cal .cal-trend-plot svg { display: block; overflow: visible; cursor: pointer; }
+.cal .cal-trend-gridline line { stroke: var(--cal-border); }
+.cal .cal-trend-gridline text, .cal .cal-trend-axis { fill: var(--cal-text-2); font-size: 11px; }
+.cal .cal-trend-line { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.cal .cal-trend-line.is-intake { stroke: var(--cal-accent); }
+.cal .cal-trend-line.is-maintenance { stroke: var(--cal-text-3); stroke-dasharray: 6 5; stroke-width: 1.8; }
+.cal .cal-trend-dot { fill: var(--cal-accent); stroke: var(--cal-surface); stroke-width: 1; }
+.cal .cal-trend-cursor line { stroke: var(--cal-border-strong); stroke-dasharray: 3 4; }
+.cal .cal-trend-cursor circle { stroke: var(--cal-surface); stroke-width: 2; }
+.cal .cal-trend-cursor .is-intake { fill: var(--cal-accent); }
+.cal .cal-trend-cursor .is-maintenance { fill: var(--cal-text-3); }
+.cal .cal-trend-detail { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding-top: 12px; margin-top: 8px; border-top: 1px solid var(--cal-border); color: var(--cal-text-2); font-size: 12px; }
+.cal .cal-trend-detail strong { color: var(--cal-text); font-weight: 500; }
+.cal .cal-trend-detail .cal-btn { padding: 0; }
+.cal .cal-trend-note { margin: 14px 0 0; font-size: 12px; color: var(--cal-text-2); }
+.cal .cal-trend-empty { min-height: 280px; display: grid; place-items: center; color: var(--cal-text-2); }
+.cal .cal-trend-stats { display: grid; gap: 18px; }
+.cal .cal-trend-streak { display: flex; align-items: center; gap: 20px; padding: 22px; }
+.cal .cal-streak-icon { display: grid; place-items: center; background: var(--cal-accent-soft); color: var(--cal-accent); border-radius: 14px; width: 42px; height: 48px; flex-shrink: 0; }
+.cal .cal-trend-streak p { margin: 4px 0 0; font-size: 12px; color: var(--cal-text-2); }
+.cal .cal-trend-streak strong { font-size: 25px; font-weight: 650; color: var(--cal-text); font-variant-numeric: tabular-nums; }
+.cal .cal-trend-averages { padding: 22px; }
+.cal .cal-trend-averages > p { margin-top: 6px; }
+.cal .cal-trend-averages dl { margin: 18px 0 0; }
+.cal .cal-trend-nutrient { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 15px 0; border-bottom: 1px solid var(--cal-border); }
+.cal .cal-trend-nutrient:last-child { border-bottom: 0; }
+.cal .cal-trend-nutrient dt { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; }
+.cal .cal-trend-nutrient i { width: 7px; height: 7px; border-radius: 50%; }
+.cal .cal-trend-nutrient [data-nutrient='proteinG'] { background: var(--meal-lunch); }
+.cal .cal-trend-nutrient [data-nutrient='fatG'] { background: var(--meal-breakfast); }
+.cal .cal-trend-nutrient [data-nutrient='carbsG'] { background: var(--meal-dinner); }
+.cal .cal-trend-nutrient dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.cal .cal-trend-nutrient dd strong { font-size: 21px; font-weight: 600; }
+.cal .cal-trend-nutrient small { display: block; color: var(--cal-text-2); font-size: 11px; margin-top: 3px; }
+@container cal (max-width: 850px) {
+  .cal .cal-trends-grid { grid-template-columns: minmax(0, 1fr); }
+  .cal .cal-trend-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+}
+@container cal (max-width: 560px) {
+  .cal .cal-trends-heading { flex-wrap: wrap; }
+  .cal .cal-trend-stats { grid-template-columns: minmax(0, 1fr); }
+  .cal .cal-trend-chart, .cal .cal-trend-averages, .cal .cal-trend-streak { padding: 18px; }
+  .cal .cal-trend-ranges button { padding-inline: 12px; }
+}

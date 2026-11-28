@@ -8,6 +8,7 @@ import { TrackerError, validated } from './errors.ts';
 import { addFood, deleteFood, editFood, searchFoods } from './foods.ts';
 import { summarize } from './profiles.ts';
 import type { TrackerRepository } from './repository.ts';
+import { summarizeTrends } from './trends.ts';
 
 function fingerprint(input: object): string {
   const canonical = JSON.stringify(input, (_key, value: unknown) => {
@@ -110,6 +111,10 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
     async daily_summary(input: unknown) {
       const { date } = validated(clientSchemas.daily_summary, input, '请选择有效的日期。');
       return repo.read(() => summarize(repo, date));
+    },
+    async trends(input: unknown) {
+      const { range, timeZone } = validated(clientSchemas.trends, input, '请选择有效的日期范围。');
+      return repo.read(() => summarizeTrends(repo, today(timeZone), range));
     },
     async profile_get(input: unknown = {}) {
       const { timeZone } = validated(clientSchemas.profile_get, input, '请检查设备时区后重试。');

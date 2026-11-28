@@ -19,7 +19,7 @@ const coefficients = {
   },
 } as const;
 
-function estimate(profile: Profile, date: string): number | null {
+export function estimateMaintenance(profile: Profile, date: string): number | null {
   const { birthDate, sex, heightCm, weightKg, activity } = profile;
   if (!birthDate || !sex || heightCm === undefined || weightKg === undefined || !activity) return null;
 
@@ -34,7 +34,7 @@ function estimate(profile: Profile, date: string): number | null {
 
 export function summarize(repo: TrackerRepository, date: string): DailySummary {
   const diet = queryEntries(repo, { date });
-  const maintenanceKcal = estimate(repo.profileOn(date)?.profile ?? {}, date);
+  const maintenanceKcal = estimateMaintenance(repo.profileOn(date)?.profile ?? {}, date);
   return {
     ...diet,
     maintenanceKcal,

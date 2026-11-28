@@ -1,10 +1,11 @@
 import type { KeyboardEvent, ReactNode } from 'react';
-import { BasketIcon, PersonIcon, PlateIcon } from './icons.tsx';
+import { BasketIcon, PersonIcon, PlateIcon, TrendIcon } from './icons.tsx';
 
-export type Tab = 'daily' | 'foods' | 'profile';
+export type Tab = 'daily' | 'trends' | 'foods' | 'profile';
 
 const tabs: ReadonlyArray<{ id: Tab; label: string; icon: ReactNode }> = [
   { id: 'daily', label: '饮食记录', icon: <PlateIcon size={16} /> },
+  { id: 'trends', label: '趋势', icon: <TrendIcon size={16} /> },
   { id: 'foods', label: '食物库', icon: <BasketIcon size={16} /> },
   { id: 'profile', label: '个人资料', icon: <PersonIcon size={16} /> },
 ];

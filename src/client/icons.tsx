@@ -23,6 +23,10 @@ export function PlateIcon({ size }: IconProps) {
   </Svg>;
 }
 
+export function TrendIcon({ size }: IconProps) {
+  return <Svg size={size}><path d="M4 4v16h16M7 14l4-5 4 3 5-7" /></Svg>;
+}
+
 export function BasketIcon({ size }: IconProps) {
   return <Svg size={size}>
     <path d="M4 9.5h16l-1.5 9a2 2 0 0 1-2 1.7h-9a2 2 0 0 1-2-1.7L4 9.5Z" />

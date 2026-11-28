@@ -9,9 +9,9 @@ import { loadSummary } from './data.ts';
  * 当前查看的日期。查看今天且允许跟随时，跨过零点会自动换到新的一天；
  * 用户切到别的日期后不再跟随，回到今天后恢复。
  */
-export function useFollowedDate(canFollow: boolean) {
-  const [date, setDateState] = useState(localDate);
-  const following = useRef(true);
+export function useFollowedDate(canFollow: boolean, initialDate?: string) {
+  const [date, setDateState] = useState(() => initialDate ?? localDate());
+  const following = useRef(initialDate === undefined || initialDate === localDate());
   const allowed = useRef(canFollow);
   allowed.current = canFollow;
 
