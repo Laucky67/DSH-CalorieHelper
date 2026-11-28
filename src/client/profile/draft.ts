@@ -14,6 +14,8 @@ export type ProfileDraft = {
   heightCm: string;
   weightKg: string;
   activity: Activity | '';
+  tdeeMethod: NonNullable<Profile['tdeeMethod']>;
+  mifflinActivity: Activity | '';
 };
 export type ProfileErrors = Partial<Record<keyof ProfileDraft, string>>;
 
@@ -21,7 +23,8 @@ export type ProfileErrors = Partial<Record<keyof ProfileDraft, string>>;
 export const estimateMinAge = 19;
 
 export function isProfileComplete(draft: ProfileDraft): boolean {
-  return Boolean(draft.birthDate && draft.sex && draft.heightCm.trim() && draft.weightKg.trim() && draft.activity);
+  const activity = draft.tdeeMethod === 'mifflin-st-jeor' ? draft.mifflinActivity : draft.activity;
+  return Boolean(draft.birthDate && draft.sex && draft.heightCm.trim() && draft.weightKg.trim() && activity);
 }
 
 export function timeZone(): string {
@@ -39,14 +42,20 @@ export function profileDraft(profile: ProfileRecord): ProfileDraft {
     heightCm: numberInput(profile.heightCm),
     weightKg: numberInput(profile.weightKg),
     activity: profile.activity ?? '',
+    tdeeMethod: profile.tdeeMethod ?? 'nasem-2023',
+    mifflinActivity: profile.mifflinActivity ?? '',
   };
 }
 
 /** 校验并转换为保存内容。 */
-export function readProfileDraft(draft: ProfileDraft): { profile?: Profile; errors: ProfileErrors } {
+export function readProfileDraft(draft: ProfileDraft, previousMethod = draft.tdeeMethod): { profile?: Profile; errors: ProfileErrors } {
   const errors: ProfileErrors = {};
   const height = parseNumber(draft.heightCm);
   const weight = parseNumber(draft.weightKg);
+  const activityField = draft.tdeeMethod === 'mifflin-st-jeor' ? 'mifflinActivity' : 'activity';
+  if (!draft[activityField] && (draft.tdeeMethod === 'mifflin-st-jeor' || draft.tdeeMethod !== previousMethod)) {
+    errors[activityField] = '请选择日常活动等级';
+  }
   if (height !== undefined && !inRange(height, profileMeasureMin, heightMax)) errors.heightCm = `请填写 ${heightMax} 以内的身高`;
   if (weight !== undefined && !inRange(weight, profileMeasureMin, weightMax)) errors.weightKg = `请填写 ${weightMax} 以内的体重`;
   if (Object.keys(errors).length) return { errors };
@@ -58,6 +67,8 @@ export function readProfileDraft(draft: ProfileDraft): { profile?: Profile; erro
       heightCm: height,
       weightKg: weight,
       activity: draft.activity || undefined,
+      tdeeMethod: draft.tdeeMethod,
+      mifflinActivity: draft.mifflinActivity || undefined,
     },
   };
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { activityLevels, meals } from './choices.ts';
+import { activityLevels, meals, tdeeMethods } from './choices.ts';
 
 const oldText = z.string().trim().min(1);
 const visible = (limit: number) => oldText.max(limit).refine((text) => /[^\s\p{Cf}\p{Cc}]/u.test(text));
@@ -56,6 +56,8 @@ export const legacyProfileSchema = z.strictObject({
   heightCm: z.number().positive().optional(),
   weightKg: z.number().positive().optional(),
   activity: z.enum(activityLevels).optional(),
+  tdeeMethod: z.enum(tdeeMethods).optional(),
+  mifflinActivity: z.enum(activityLevels).optional(),
 });
 export const profileSchema = legacyProfileSchema.extend({
   heightCm: z.number().min(profileMeasureMin).max(heightMax).optional(),

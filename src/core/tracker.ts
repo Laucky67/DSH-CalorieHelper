@@ -6,7 +6,7 @@ import type { ClientInput, DietItem } from './contracts.ts';
 import { addEntries, deleteEntry, editEntry, queryEntries } from './diets.ts';
 import { TrackerError, validated } from './errors.ts';
 import { addFood, deleteFood, editFood, searchFoods } from './foods.ts';
-import { summarize } from './profiles.ts';
+import { normalizeProfile, summarize } from './profiles.ts';
 import type { TrackerRepository } from './repository.ts';
 import { summarizeTrends } from './trends.ts';
 
@@ -119,7 +119,7 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
     async profile_get(input: unknown = {}) {
       const { timeZone } = validated(clientSchemas.profile_get, input, '请检查设备时区后重试。');
       const current = repo.profileOn(today(timeZone));
-      return { ...current?.profile, version: current?.version ?? null };
+      return { ...normalizeProfile(current?.profile ?? {}), version: current?.version ?? null };
     },
     async profile_save(input: unknown, signal?: AbortSignal) {
       const data = validated(clientSchemas.profile_save, input, '请检查个人资料和设备时区。');
@@ -132,8 +132,18 @@ export function createTracker(repo: TrackerRepository, today = (timeZone?: strin
         if (expectedVersion !== undefined && expectedVersion !== version) {
           throw new TrackerError('个人资料已在另一处更新。请重新打开资料页，核对后再保存。', undefined, 'CONFLICT');
         }
-        if (unchanged(current?.profile ?? {}, profile)) return { ...profile, version };
-        return { ...profile, version: repo.appendProfile(effectiveDate, profile) };
+        const next = normalizeProfile({
+          ...profile,
+          activity: profile.tdeeMethod === 'mifflin-st-jeor' ? profile.activity ?? current?.profile.activity : profile.activity,
+          mifflinActivity: profile.mifflinActivity ?? current?.profile.mifflinActivity,
+        });
+        const currentMethod = current?.profile.tdeeMethod ?? 'nasem-2023';
+        const activity = next.tdeeMethod === 'mifflin-st-jeor' ? next.mifflinActivity : next.activity;
+        if (!activity && (next.tdeeMethod === 'mifflin-st-jeor' || next.tdeeMethod !== currentMethod)) {
+          throw new TrackerError('请选择日常活动等级后再保存。');
+        }
+        if (unchanged(normalizeProfile(current?.profile ?? {}), next)) return { ...next, version };
+        return { ...next, version: repo.appendProfile(effectiveDate, next) };
       }, signal);
     },
   };
