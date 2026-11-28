@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { activityLevels, tdeeMethods } from '../../core/choices.ts';
+import { ChevronDownIcon } from '../icons.tsx';
 import { activityLabels } from '../presentation.ts';
 import { FieldError } from '../ui.tsx';
 import type { ProfileDraft, ProfileErrors } from './draft.ts';
@@ -34,12 +35,11 @@ type Props = {
   onChange: (patch: Partial<ProfileDraft>) => void;
 };
 
-export function TdeeSettings({ draft, errors, onChange }: Props) {
+export function TdeeSettings({ draft, onChange }: Props) {
   const id = useId();
-  const activityField = draft.tdeeMethod === 'mifflin-st-jeor' ? 'mifflinActivity' : 'activity';
-  const error = errors[activityField];
-  return <>
-    <section className="cal-card cal-profile-card" aria-labelledby={`${id}-method`}>
+  return <details className="cal-card cal-profile-advanced">
+    <summary className="cal-profile-advanced-toggle">高级<ChevronDownIcon size={18} /></summary>
+    <div className="cal-profile-advanced-content">
       <h2 className="cal-profile-title" id={`${id}-method`}>TDEE 计算方案</h2>
       <div className="cal-choices" role="radiogroup" aria-labelledby={`${id}-method`}>
         {tdeeMethods.map((method) => <label className="cal-choice" key={method}>
@@ -48,8 +48,15 @@ export function TdeeSettings({ draft, errors, onChange }: Props) {
           <span className="cal-choice-hint">{methodDetails[method].description}</span>
         </label>)}
       </div>
-    </section>
-    <section className="cal-card cal-profile-card" aria-labelledby={`${id}-activity`}>
+    </div>
+  </details>;
+}
+
+export function ActivitySettings({ draft, errors, onChange }: Props) {
+  const id = useId();
+  const activityField = draft.tdeeMethod === 'mifflin-st-jeor' ? 'mifflinActivity' : 'activity';
+  const error = errors[activityField];
+  return <section className="cal-card cal-profile-card" aria-labelledby={`${id}-activity`}>
       <h2 className="cal-profile-title" id={`${id}-activity`}>日常活动等级</h2>
       <div className="cal-choices" role="radiogroup" aria-labelledby={`${id}-activity`} aria-describedby={error ? `${id}-error` : undefined}>
         {activityLevels.map((level) => <label key={level} className="cal-choice">
@@ -66,6 +73,5 @@ export function TdeeSettings({ draft, errors, onChange }: Props) {
         </label>}
       </div>
       <div id={`${id}-error`}><FieldError>{error}</FieldError></div>
-    </section>
-  </>;
+    </section>;
 }

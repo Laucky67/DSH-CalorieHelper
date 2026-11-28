@@ -3,6 +3,15 @@
 .cal .cal-profile-form { display: flex; flex-direction: column; gap: 14px; }
 .cal .cal-profile-card { display: flex; flex-direction: column; gap: 18px; padding: 20px 22px 22px; }
 .cal .cal-profile-title { margin: 0; font-size: 15px; font-weight: 600; }
+.cal .cal-profile-advanced { padding: 20px 22px; }
+.cal .cal-profile-advanced-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  cursor: pointer; list-style: none; font-size: 15px; font-weight: 600;
+}
+.cal .cal-profile-advanced-toggle::-webkit-details-marker { display: none; }
+.cal .cal-profile-advanced-toggle > svg { flex: none; color: var(--cal-text-2); }
+.cal .cal-profile-advanced[open] > summary > svg { transform: rotate(180deg); }
+.cal .cal-profile-advanced-content { display: flex; flex-direction: column; gap: 18px; margin-top: 18px; }
 .cal .cal-profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; }
 .cal .cal-profile-grid .cal-segmented { align-self: flex-start; }
 .cal .cal-profile-grid .cal-field > .cal-segmented { min-height: 38px; align-items: center; }
@@ -70,7 +79,8 @@
 @container cal (max-width: 640px) {
   .cal .cal-profile-grid,
   .cal .cal-choices { grid-template-columns: minmax(0, 1fr); }
-  .cal .cal-profile-card { padding: 16px; }
+  .cal .cal-profile-card,
+  .cal .cal-profile-advanced { padding: 16px; }
 }
 @container cal (max-width: 440px) {
   .cal .cal-profile-foot { flex-direction: column; align-items: stretch; }
