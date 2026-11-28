@@ -7,7 +7,7 @@ import { useMutation, useUnsavedWarning } from '../requests.ts';
 import { Banner, FieldError, Segmented } from '../ui.tsx';
 import { ageOn, estimateMinAge, isProfileComplete, profileDraft, readProfileDraft, timeZone } from './draft.ts';
 import type { ProfileDraft, ProfileErrors, ProfileRecord } from './draft.ts';
-import { TdeeSettings } from './tdee-settings.tsx';
+import { ActivitySettings, TdeeSettings } from './tdee-settings.tsx';
 
 type Props = {
   profile: ProfileRecord;
@@ -97,6 +97,8 @@ export function ProfileForm({ profile, justSaved, onSaved, onEdit, onReload, rep
         </label>
       </div>
     </section>
+
+    <ActivitySettings draft={draft} errors={errors} onChange={change} />
 
     <TdeeSettings draft={draft} errors={errors} onChange={change} />
 
