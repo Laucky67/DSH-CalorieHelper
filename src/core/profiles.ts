@@ -19,16 +19,30 @@ const coefficients = {
   },
 } as const;
 
+export function normalizeProfile(profile: Profile): Profile {
+  const values = Object.fromEntries(Object.entries(profile).filter(([, value]) => value !== undefined));
+  return { ...values, tdeeMethod: profile.tdeeMethod ?? 'nasem-2023' };
+}
+
+const mifflinFactors = { inactive: 1.2, 'low-active': 1.375, active: 1.55, 'very-active': 1.725 } as const;
+
 export function estimateMaintenance(profile: Profile, date: string): number | null {
-  const { birthDate, sex, heightCm, weightKg, activity } = profile;
+  const { birthDate, sex, heightCm, weightKg } = profile;
+  const activity = profile.tdeeMethod === 'mifflin-st-jeor' ? profile.mifflinActivity : profile.activity;
   if (!birthDate || !sex || heightCm === undefined || weightKg === undefined || !activity) return null;
 
   const fullYears = Number(date.slice(0, 4)) - Number(birthDate.slice(0, 4));
   const age = fullYears - Number(date.slice(5) < birthDate.slice(5));
   if (age < 19) return null;
 
-  const [constant, ageFactor, heightFactor, weightFactor] = coefficients[sex][activity];
-  const kcal = constant + ageFactor * age + heightFactor * heightCm + weightFactor * weightKg;
+  let kcal: number;
+  if (profile.tdeeMethod === 'mifflin-st-jeor') {
+    const restingKcal = 10 * weightKg + 6.25 * heightCm - 5 * age + (sex === 'male' ? 5 : -161);
+    kcal = restingKcal * mifflinFactors[activity];
+  } else {
+    const [constant, ageFactor, heightFactor, weightFactor] = coefficients[sex][activity];
+    kcal = constant + ageFactor * age + heightFactor * heightCm + weightFactor * weightKg;
+  }
   return Number.isFinite(kcal) && kcal > 0 ? kcal : null;
 }
 

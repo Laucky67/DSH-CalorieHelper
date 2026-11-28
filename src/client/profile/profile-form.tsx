@@ -1,15 +1,13 @@
 import { useId, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { activityLevels } from '../../core/choices.ts';
 import { localDate } from '../../core/calendar.ts';
-import type { Profile } from '../../core/contracts.ts';
 import { useReportDirty } from '../dirty.ts';
 import { AlertIcon, CheckIcon } from '../icons.tsx';
-import { activityLabels } from '../presentation.ts';
 import { useMutation, useUnsavedWarning } from '../requests.ts';
 import { Banner, FieldError, Segmented } from '../ui.tsx';
 import { ageOn, estimateMinAge, isProfileComplete, profileDraft, readProfileDraft, timeZone } from './draft.ts';
 import type { ProfileDraft, ProfileErrors, ProfileRecord } from './draft.ts';
+import { TdeeSettings } from './tdee-settings.tsx';
 
 type Props = {
   profile: ProfileRecord;
@@ -20,15 +18,7 @@ type Props = {
   reportDirty: (dirty: boolean) => void;
 };
 
-type Activity = NonNullable<Profile['activity']>;
-
 const sexOptions = [{ value: 'female', label: '女' }, { value: 'male', label: '男' }, { value: '', label: '不填' }] as const;
-const activityHints: Record<Activity, string> = {
-  inactive: '久坐为主，很少专门运动',
-  'low-active': '每天约 30–60 分钟步行等轻度活动',
-  active: '每天约 1–2 小时中等强度活动',
-  'very-active': '体力劳动或每天高强度训练',
-};
 
 export function ProfileForm({ profile, justSaved, onSaved, onEdit, onReload, reportDirty }: Props) {
   const ids = useId();
@@ -56,7 +46,7 @@ export function ProfileForm({ profile, justSaved, onSaved, onEdit, onReload, rep
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const { profile: values, errors: found } = readProfileDraft(draft);
+    const { profile: values, errors: found } = readProfileDraft(draft, initial.tdeeMethod);
     setErrors(found);
     if (!values) {
       window.requestAnimationFrame(() => form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
@@ -108,20 +98,7 @@ export function ProfileForm({ profile, justSaved, onSaved, onEdit, onReload, rep
       </div>
     </section>
 
-    <section className="cal-card cal-profile-card" aria-labelledby={`${ids}-activity`}>
-      <h2 className="cal-profile-title" id={`${ids}-activity`}>日常活动等级</h2>
-      <div className="cal-choices" role="radiogroup" aria-labelledby={`${ids}-activity`}>
-        {activityLevels.map((level) => <label key={level} className="cal-choice">
-          <input type="radio" name="activity" checked={draft.activity === level} onChange={() => change({ activity: level })} />
-          <span className="cal-choice-title">{activityLabels[level]}</span>
-          <span className="cal-choice-hint">{activityHints[level]}</span>
-        </label>)}
-        <label className="cal-choice is-none">
-          <input type="radio" name="activity" checked={draft.activity === ''} onChange={() => change({ activity: '' })} />
-          <span className="cal-choice-title">不填</span>
-        </label>
-      </div>
-    </section>
+    <TdeeSettings draft={draft} errors={errors} onChange={change} />
 
     {age !== undefined && age < estimateMinAge
       ? <p className="cal-profile-note"><AlertIcon size={16} />未满 {estimateMinAge} 岁时不估算维持热量。</p>
