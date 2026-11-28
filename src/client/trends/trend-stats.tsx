@@ -14,7 +14,6 @@ export function TrendStats({ data }: { data: Trends }) {
     </section>
     <section className="cal-card cal-trend-averages">
       <h2>每日平均</h2>
-      <p className="cal-muted">所选范围内，{data.recordedDays} 天有记录</p>
       <dl>
         {trendNutrients.map((key) => {
           const average = data.averages[key];
@@ -22,12 +21,10 @@ export function TrendStats({ data }: { data: Trends }) {
             <dt><i data-nutrient={key} />{labels[key]}</dt>
             <dd>{average.grams === null ? <span className="cal-muted">资料不足</span> : <>
               <strong>{gramText(average.grams)}</strong><span className="cal-muted"> g</span>
-              <small>{average.days} 天数据完整</small>
             </>}</dd>
           </div>;
         })}
       </dl>
-      <p className="cal-trend-note">各项分别按当天营养资料完整的记录日计算。</p>
     </section>
   </aside>;
 }

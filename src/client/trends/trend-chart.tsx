@@ -19,8 +19,8 @@ function linePath(days: Day[], key: Series, x: (index: number) => number, y: (va
   }).join(' ');
 }
 
-export function TrendChart({ days, recordedDays, onOpenDate }: {
-  days: Day[]; recordedDays: number; onOpenDate: (date: string) => void;
+export function TrendChart({ days, onOpenDate }: {
+  days: Day[]; onOpenDate: (date: string) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
@@ -65,10 +65,11 @@ export function TrendChart({ days, recordedDays, onOpenDate }: {
   const ticks = [...new Set([0, Math.floor((days.length - 1) / 2), days.length - 1])];
 
   return <section className="cal-card cal-trend-chart">
-    <div className="cal-trend-chart-heading"><h2>热量</h2><span className="cal-muted">千卡</span></div>
-    <div className="cal-trend-legend">
-      <span><i className="is-intake" />摄入热量</span>
-      <span><i className="is-maintenance" />估算维持热量</span>
+    <div className="cal-trend-chart-heading">
+      <div className="cal-trend-chart-title"><h2>热量</h2><span className="cal-muted">千卡</span></div>
+      <div className="cal-trend-period">
+        {days.length > 0 && <span className="cal-muted">{days[0].date} 至 {days.at(-1)!.date}</span>}
+      </div>
     </div>
     <div ref={container} className="cal-trend-plot">
       {days.length > 0 ? <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}
@@ -97,13 +98,16 @@ export function TrendChart({ days, recordedDays, onOpenDate }: {
         </g>}
       </svg> : <div className="cal-trend-empty">记下第一餐，开始查看趋势</div>}
     </div>
-    {activeDay && <div className="cal-trend-detail" aria-live="polite" aria-atomic="true">
-      <button type="button" className="cal-btn is-quiet is-small" onClick={() => onOpenDate(activeDay.date)}>{activeDay.date} ↗</button>
-      <span>摄入 <strong>{activeDay.intakeKcal === null ? '未记录' : `${energyText(activeDay.intakeKcal)} 千卡`}</strong></span>
-      <span>维持 <strong>{activeDay.maintenanceKcal === null ? '资料不足' : `${energyText(activeDay.maintenanceKcal)} 千卡`}</strong></span>
-    </div>}
-    {days.length > 0 && <p className="cal-trend-note">
-      {days[0].date} 至 {days.at(-1)!.date} · {recordedDays ? '选择日期查看当天饮食记录' : '这段时间还没有饮食记录'}
-    </p>}
+    <div className="cal-trend-footer">
+      {activeDay && <div className="cal-trend-detail" aria-live="polite" aria-atomic="true">
+        <button type="button" className="cal-btn is-quiet is-small" onClick={() => onOpenDate(activeDay.date)}>{activeDay.date} ↗</button>
+        <span>摄入 <strong>{activeDay.intakeKcal === null ? '未记录' : `${energyText(activeDay.intakeKcal)} 千卡`}</strong></span>
+        <span>维持 <strong>{activeDay.maintenanceKcal === null ? '资料不足' : `${energyText(activeDay.maintenanceKcal)} 千卡`}</strong></span>
+      </div>}
+      <div className="cal-trend-legend">
+        <span><i className="is-intake" />摄入热量</span>
+        <span><i className="is-maintenance" />估算维持热量</span>
+      </div>
+    </div>
   </section>;
 }
